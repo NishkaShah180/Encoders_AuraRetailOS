@@ -1,0 +1,10 @@
+{
+  "inventory": [
+    { "item": "Water Bottle", "quantity": 14 },
+    { "item": "Energy Bar", "quantity": 10 },
+    { "item": "Paracetamol", "quantity": 8 },
+    { "item": "Bandage", "quantity": 20 },
+    { "item": "Meal Kit", "quantity": 6 },
+    { "item": "Emergency Kit", "quantity": 5 }
+  ]
+}

@@ -12,6 +12,8 @@ public:
         stock["Water Bottle"]  = 15;
         stock["Paracetamol"]   = 8;
         stock["Emergency Kit"] = 5;
+        stock["Meal Kit"]      = 6;       
+        stock["Bandage"] = 20;  
     }
 
     bool checkStock(const std::string& itemName) override {

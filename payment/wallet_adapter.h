@@ -6,19 +6,31 @@
 class RealWalletSystem {
 public:
     void deductWallet(const std::string& walletName, double amount) {
-        std::cout << "[Wallet System] Deducting Rs." << amount << " from " << walletName << "\n";
+        std::cout << "[Wallet System] Deducting Rs." << amount
+                  << " from " << walletName << "\n";
     }
 };
 
 class WalletAdapter : public IPayment {
-    std::string walletName;
     RealWalletSystem walletSystem;
+     std::string walletName;
 public:
-    WalletAdapter(const std::string& name) : walletName(name) {}
+   bool pay(double amount) override {
+        std::string pin;
+        std::cout << "[Wallet Payment] Enter Wallet Name: ";
+        std::cin >> walletName;
+        std::cout << "[Wallet Payment] Enter Wallet PIN: ";
+        std::cin >> pin;
 
-    void pay(double amount) override {
+        if (pin.length() < 4) {
+            std::cout << "[Wallet Payment] Invalid PIN. Payment failed.\n";
+            return false;
+        }
         std::cout << "[WalletAdapter] Converting to Wallet interface...\n";
         walletSystem.deductWallet(walletName, amount);
         std::cout << "Paid Rs." << amount << " using Wallet: " << walletName << "\n";
+        return true;
     }
+
+    std::string getProviderName() { return "Wallet"; }
 };
