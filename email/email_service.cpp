@@ -12,45 +12,51 @@ EmailService::EmailService() {
 }
 
 void EmailService::loadConfig() {
-    // Default values
+    // 1. Default values
     config.host = "smtp.gmail.com";
     config.port = 587;
-    config.username = "";
-    config.password = "";
     config.useTLS = true;
 
-    std::ifstream file("smtp_config.json");
-    if (!file.is_open()) {
-        std::cerr << "\n[ERROR] smtp_config.json not found! Real SMTP will likely fail.\n";
+    // 2. Try Environment Variables (Most Secure)
+    const char* envEmail = std::getenv("SMTP_EMAIL");
+    const char* envPass  = std::getenv("SMTP_PASSWORD");
+
+    if (envEmail && envPass) {
+        config.username = envEmail;
+        config.password = envPass;
+        configLoaded = true;
         return;
     }
 
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.find("\"smtp_host\":") != std::string::npos) {
-            size_t start = line.find(": \"") + 3;
-            size_t end = line.find("\"", start);
-            config.host = line.substr(start, end - start);
-        } else if (line.find("\"smtp_port\":") != std::string::npos) {
-            size_t start = line.find(": ") + 2;
-            size_t end = line.find_first_of(", \r\n}", start);
-            config.port = std::stoi(line.substr(start, end - start));
-        } else if (line.find("\"email\":") != std::string::npos) {
-            size_t start = line.find(": \"") + 3;
-            size_t end = line.find("\"", start);
-            config.username = line.substr(start, end - start);
-        } else if (line.find("\"app_password\":") != std::string::npos) {
-            size_t start = line.find(": \"") + 3;
-            size_t end = line.find("\"", start);
-            config.password = line.substr(start, end - start);
+    // 3. Fallback to smtp_config.json (for local dev)
+    std::ifstream file("smtp_config.json");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.find("\"smtp_host\":") != std::string::npos) {
+                size_t start = line.find(": \"") + 3;
+                size_t end = line.find("\"", start);
+                if (start != std::string::npos && end != std::string::npos)
+                    config.host = line.substr(start, end - start);
+            } else if (line.find("\"email\":") != std::string::npos) {
+                size_t start = line.find(": \"") + 3;
+                size_t end = line.find("\"", start);
+                if (start != std::string::npos && end != std::string::npos)
+                    config.username = line.substr(start, end - start);
+            } else if (line.find("\"app_password\":") != std::string::npos) {
+                size_t start = line.find(": \"") + 3;
+                size_t end = line.find("\"", start);
+                if (start != std::string::npos && end != std::string::npos)
+                    config.password = line.substr(start, end - start);
+            }
         }
+        file.close();
     }
-    file.close();
 
-    if (config.username.empty() || config.password.empty()) {
-        std::cerr << "[WARNING] SMTP credentials missing in config file.\n";
-    } else {
+    if (!config.username.empty() && !config.password.empty()) {
         configLoaded = true;
+    } else {
+        std::cerr << "[WARNING] SMTP credentials not found in environment or config file.\n";
     }
 }
 
