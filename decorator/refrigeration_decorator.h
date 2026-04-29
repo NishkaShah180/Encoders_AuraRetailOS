@@ -7,8 +7,8 @@ class RefrigerationDecorator : public KioskDecorator {
     float temperature;
 
 public:
-    RefrigerationDecorator(std::shared_ptr<IKiosk> kiosk, float temp = 4.0)
-        : KioskDecorator(kiosk), temperature(temp) {
+    RefrigerationDecorator(std::shared_ptr<IKiosk> kiosk, std::shared_ptr<RealInventory> inv, float temp = 4.0)
+        : KioskDecorator(kiosk, inv), temperature(temp) {
         std::cout << "[RefrigerationDecorator] Module attached. "
                   << "Temperature set to " << temperature << "C\n";
     }

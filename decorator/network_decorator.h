@@ -7,8 +7,8 @@ class NetworkDecorator : public KioskDecorator {
     int signalStrength;
 
 public:
-    NetworkDecorator(std::shared_ptr<IKiosk> kiosk, int signal = 94)
-        : KioskDecorator(kiosk), signalStrength(signal) {
+    NetworkDecorator(std::shared_ptr<IKiosk> kiosk, std::shared_ptr<RealInventory> inv, int signal = 94)
+        : KioskDecorator(kiosk, inv), signalStrength(signal) {
         std::cout << "[NetworkDecorator] Module attached. "
                   << "Signal strength: " << signalStrength << "%\n";
     }

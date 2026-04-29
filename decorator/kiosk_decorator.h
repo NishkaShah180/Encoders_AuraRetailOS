@@ -9,9 +9,9 @@ protected:
     std::shared_ptr<IKiosk> wrappedKiosk;
 
 public:
-    KioskDecorator(std::shared_ptr<IKiosk> kiosk)
+    KioskDecorator(std::shared_ptr<IKiosk> kiosk, std::shared_ptr<RealInventory> inv)
         : IKiosk("decorated", "Decorator_User",
-                 std::make_shared<SpiralDispenser>()),
+                 std::make_shared<SpiralDispenser>(), inv),
           wrappedKiosk(kiosk) {}
 
     void purchaseItem(const std::string& itemName,

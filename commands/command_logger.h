@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <thread>
+#include <chrono>
 
 struct LogEntry {
     std::string type;
@@ -42,8 +44,8 @@ public:
         }
     }
 
-    int getCount() { return log.size(); }
-    const std::vector<LogEntry>& getEntries() {
+    int getCount() { return (int)log.size(); }
+    const std::vector<LogEntry>& getEntries() const {
         return log;
     }
 };

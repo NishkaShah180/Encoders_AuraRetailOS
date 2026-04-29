@@ -7,8 +7,8 @@ class SolarDecorator : public KioskDecorator {
     int batteryLevel;
 
 public:
-    SolarDecorator(std::shared_ptr<IKiosk> kiosk, int battery = 87)
-        : KioskDecorator(kiosk), batteryLevel(battery) {
+    SolarDecorator(std::shared_ptr<IKiosk> kiosk, std::shared_ptr<RealInventory> inv, int battery = 87)
+        : KioskDecorator(kiosk, inv), batteryLevel(battery) {
         std::cout << "[SolarDecorator] Module attached. "
                   << "Battery level: " << batteryLevel << "%\n";
     }

@@ -4,6 +4,13 @@
 #include <vector>
 #include <iomanip>
 #include <sstream>
+#ifdef _WIN32
+#include <windows.h>
+inline void _aura_sleep(int ms) { Sleep(ms); }
+#else
+#include <unistd.h>
+inline void _aura_sleep(int ms) { usleep(ms * 1000); }
+#endif
 
 // ─────────────────────────────────────────────
 //  AURA RETAIL OS  --  Pretty Print Utilities
@@ -23,9 +30,12 @@ namespace Color {
     const std::string BCYAN   = "\033[96m";
     const std::string BGREEN  = "\033[92m";
     const std::string BRED    = "\033[91m";
+    const std::string BLUE    = "\033[34m";
+    const std::string BBLUE   = "\033[94m";
+    const std::string GREEN   = "\033[32m";
 }
 
-// ── Box chars (bytes literal so no width confusion) ──
+// ── Box chars ──────────────────────────────────
 const std::string tTL = "\xe2\x94\x8c"; // ┌
 const std::string tTR = "\xe2\x94\x90"; // ┐
 const std::string tBL = "\xe2\x94\x94"; // └
@@ -37,8 +47,18 @@ const std::string tBM = "\xe2\x94\xb4"; // ┴
 const std::string tXX = "\xe2\x94\xbc"; // ┼
 const std::string tH  = "\xe2\x94\x80"; // ─
 const std::string tV  = "\xe2\x94\x82"; // │
+const std::string tDH = "\xe2\x95\x90"; // ═  double horizontal
+const std::string tDTL= "\xe2\x95\x94"; // ╔
+const std::string tDTR= "\xe2\x95\x97"; // ╗
+const std::string tDBL= "\xe2\x95\x9a"; // ╚
+const std::string tDBR= "\xe2\x95\x9d"; // ╝
+const std::string tDV = "\xe2\x95\x91"; // ║
 
 // ── Helpers ───────────────────────────────────
+
+inline void delay(int ms) {
+    _aura_sleep(ms);
+}
 
 inline std::string repeatStr(const std::string& s, int n) {
     std::string r;
@@ -46,13 +66,12 @@ inline std::string repeatStr(const std::string& s, int n) {
     return r;
 }
 
-// Count visible chars (skip ANSI codes + UTF-8 continuation bytes)
 inline int visibleLen(const std::string& s) {
     int len = 0; bool esc = false;
     for (unsigned char c : s) {
         if (c == '\033') { esc = true; continue; }
         if (esc) { if (c == 'm') esc = false; continue; }
-        if ((c & 0xC0) != 0x80) len++;  // skip UTF-8 continuation bytes
+        if ((c & 0xC0) != 0x80) len++;
     }
     return len;
 }
@@ -64,59 +83,96 @@ inline std::string padStr(const std::string& s, int width) {
 }
 
 // ═══════════════════════════════════════════════
-//  PHASE BOXES  —  pure ASCII, guaranteed align
+//  BOOT BANNER
 // ═══════════════════════════════════════════════
 
 inline void printBanner() {
     std::cout << Color::BCYAN << Color::BOLD;
-    std::cout << "\n+==================================================================+\n";
-    std::cout <<   "|          AURA RETAIL OS  --  FINAL SIMULATION                   |\n";
-    std::cout <<   "+==================================================================+\n";
+    std::cout << "\n" << repeatStr(tDH, 66) << "\n";
+    std::cout << "     AURA RETAIL OS  //  SMART CITY KIOSK NETWORK  v2.0\n";
+    std::cout << repeatStr(tDH, 66) << "\n";
+    std::cout << Color::DIM << Color::WHITE;
+    std::cout << "     Powered by Encoders Team  |  OOP Design Patterns Demo\n";
+    std::cout << repeatStr(tH, 66) << "\n";
     std::cout << Color::RESET << "\n";
 }
 
-inline void printSimComplete() {
-    std::cout << Color::BCYAN << Color::BOLD;
-    std::cout << "\n+==================================================================+\n";
-    std::cout <<   "|                    SIMULATION COMPLETE                          |\n";
-    std::cout <<   "+==================================================================+\n";
-    std::cout << Color::RESET;
+inline void printBootStep(const std::string& msg, bool ok = true, int delayMs = 80) {
+    delay(delayMs);
+    if (ok) {
+        std::cout << Color::DIM << "  [" << Color::BGREEN << Color::BOLD << "  OK  "
+                  << Color::RESET << Color::DIM << "] " << Color::RESET << msg << "\n";
+    } else {
+        std::cout << Color::DIM << "  [" << Color::BRED << Color::BOLD << " FAIL "
+                  << Color::RESET << Color::DIM << "] " << Color::RESET << msg << "\n";
+    }
+    std::cout.flush();
 }
 
-inline void printPhase(const std::string& title) {
-    const int inner = 68;
-    int rpad = inner - 2 - visibleLen(title);  // ← visibleLen not title.size()
-    if (rpad < 0) rpad = 0;
-    std::cout << "\n" << Color::CYAN << Color::BOLD;
-    std::cout << "+" << std::string(inner, '=') << "+\n";
-    std::cout << "| " << title << std::string(rpad, ' ') << " |\n";
-    std::cout << "+" << std::string(inner, '=') << "+\n";
-    std::cout << Color::RESET;
+inline void printBootSection(const std::string& title) {
+    std::cout << "\n" << Color::CYAN << Color::BOLD << "  >> " << title << Color::RESET << "\n";
+    std::cout << Color::DIM << "  " << repeatStr("-", 60) << Color::RESET << "\n";
 }
 
 // ═══════════════════════════════════════════════
-//  STATUS LINES
+//  STATUS TAGS
 // ═══════════════════════════════════════════════
+
+inline std::string tag(const std::string& label, const std::string& color) {
+    return color + Color::BOLD + "[" + label + "]" + Color::RESET;
+}
 
 inline void ok(const std::string& msg) {
-    std::cout << Color::BGREEN << "  [OK] " << Color::RESET << msg << "\n";
+    std::cout << "  " << tag("  OK  ", Color::BGREEN) << "  " << msg << "\n";
 }
 inline void info(const std::string& msg) {
-    std::cout << Color::CYAN   << "  [i]  " << Color::RESET << msg << "\n";
+    std::cout << "  " << tag(" INFO ", Color::BCYAN) << "  " << msg << "\n";
 }
 inline void warn(const std::string& msg) {
-    std::cout << Color::YELLOW << "  [!]  " << Color::RESET << msg << "\n";
+    std::cout << "  " << tag(" WARN ", Color::YELLOW) << "  " << msg << "\n";
 }
 inline void fail(const std::string& msg) {
-    std::cout << Color::BRED   << "  [x]  " << Color::RESET << msg << "\n";
+    std::cout << "  " << tag(" FAIL ", Color::BRED) << "  " << msg << "\n";
 }
 inline void arrow(const std::string& msg) {
-    std::cout << Color::MAGENTA << "  -->  " << Color::RESET << msg << "\n";
+    std::cout << "  " << Color::MAGENTA << "  ---> " << Color::RESET << msg << "\n";
 }
 
 // ═══════════════════════════════════════════════
-//  TABLE PRIMITIVES  —  thin box chars (per-cell
-//  width is fine, no full-width repeat needed)
+//  SECTION DIVIDERS
+// ═══════════════════════════════════════════════
+
+inline void printPhase(const std::string& title) {
+    const int totalWidth = 66;
+    int textLen = visibleLen(title);
+    int pad = totalWidth - textLen - 4; // 4 = "║ " + " ║"
+    if (pad < 0) pad = 0;
+    
+    std::cout << "\n" << Color::CYAN << Color::BOLD;
+    std::cout << tDTL << repeatStr(tDH, totalWidth - 2) << tDTR << "\n";
+    std::cout << tDV << " " << title << std::string(pad, ' ') << " " << tDV << "\n";
+    std::cout << tDBL << repeatStr(tDH, totalWidth - 2) << tDBR << "\n";
+    std::cout << Color::RESET;
+}
+
+inline void printSection(const std::string& label) {
+    std::cout << "\n" << Color::YELLOW << Color::BOLD
+              << "  >> " << label << Color::RESET << "\n"
+              << Color::DIM << "  " << repeatStr(tH, 60)
+              << Color::RESET << "\n";
+}
+
+inline void printSectionHeader(const std::string& label) {
+    std::cout << "\n" << Color::BCYAN << Color::BOLD;
+    std::cout << "  " << tTL << repeatStr(tH, 62) << tTR << "\n";
+    int pad = 62 - 2 - (int)label.size();
+    std::cout << "  " << tV << "  " << label << std::string(pad < 0 ? 0 : pad, ' ') << tV << "\n";
+    std::cout << "  " << tBL << repeatStr(tH, 62) << tBR << "\n";
+    std::cout << Color::RESET;
+}
+
+// ═══════════════════════════════════════════════
+//  TABLE PRIMITIVES
 // ═══════════════════════════════════════════════
 
 struct TableCol {
@@ -173,7 +229,7 @@ inline void printTableRow(const std::vector<TableCol>& cols,
 }
 
 // ═══════════════════════════════════════════════
-//  INVENTORY TABLE
+//  INVENTORY TABLE (with color-coded stock)
 // ═══════════════════════════════════════════════
 
 inline void printInventoryTable(
@@ -186,8 +242,8 @@ inline void printInventoryTable(
         {"#",     2},
         {"Item",  22},
         {"Type",  9},
-        {"Price", 7},
-        {"Stock", 5}
+        {"Price", 8},
+        {"Stock", 6}
     };
     printTableHeader(cols);
     for (int i = 0; i < (int)names.size(); i++) {
@@ -197,13 +253,18 @@ inline void printInventoryTable(
         std::string qtyCol;
 
         if (qtyStr == "-" || qtyStr == "N/A") {
-            qtyCol = Color::DIM + " -" + Color::RESET;
+            qtyCol = Color::DIM + " N/A" + Color::RESET;
         } else {
             int q = 0;
             try { q = std::stoi(qtyStr); } catch (...) {}
-            qtyCol = (q <= 3)
-                ? Color::BRED   + qtyStr + Color::RESET
-                : Color::BGREEN + qtyStr + Color::RESET;
+            if (q == 0)
+                qtyCol = Color::BRED + Color::BOLD + "OUT" + Color::RESET;
+            else if (q <= 3)
+                qtyCol = Color::BRED + qtyStr + " LOW" + Color::RESET;
+            else if (q <= 7)
+                qtyCol = Color::YELLOW + qtyStr + Color::RESET;
+            else
+                qtyCol = Color::BGREEN + qtyStr + Color::RESET;
         }
 
         printTableRow(cols, {idxStr, names[i], types[i], priceCol, qtyCol});
@@ -225,20 +286,24 @@ struct TxnEntry {
 };
 
 inline void printTransactionTable(const std::vector<TxnEntry>& txns) {
+    if (txns.empty()) {
+        info("No transactions recorded yet.");
+        return;
+    }
     std::vector<TableCol> cols = {
         {"TXN",    7},
         {"Type",   8},
-        {"Item",  15},
-        {"Amt",    7},
+        {"Item",  16},
+        {"Amt",    8},
         {"Method", 7},
-        {"Status", 8}
+        {"Status", 10}
     };
     printTableHeader(cols);
     for (auto& t : txns) {
         std::string statusCol;
-        if      (t.status == "Success")  statusCol = Color::BGREEN + "Success" + Color::RESET;
-        else if (t.status == "Failed")   statusCol = Color::BRED   + "Failed"  + Color::RESET;
-        else if (t.status == "Refunded") statusCol = Color::YELLOW + "Refund"  + Color::RESET;
+        if      (t.status == "Success")  statusCol = Color::BGREEN + tag("SUCCESS", Color::BGREEN) + Color::RESET;
+        else if (t.status == "Failed")   statusCol = Color::BRED   + tag("FAILED",  Color::BRED)   + Color::RESET;
+        else if (t.status == "Refunded") statusCol = Color::YELLOW + tag("REFUND",  Color::YELLOW) + Color::RESET;
         else                             statusCol = t.status;
 
         printTableRow(cols, {t.id, t.type, t.item, t.amount, t.method, statusCol});
@@ -258,15 +323,15 @@ struct PatternResult {
 
 inline void printPatternSummary(const std::vector<PatternResult>& results) {
     std::vector<TableCol> cols = {
-        {"",        2},
+        {"",        4},
         {"Pattern", 11},
-        {"Verified", 40}
+        {"Verified", 42}
     };
     printTableHeader(cols);
     for (auto& r : results) {
         std::string tick    = r.passed
-            ? Color::BGREEN + "OK" + Color::RESET
-            : Color::BRED   + "!!" + Color::RESET;
+            ? Color::BGREEN + Color::BOLD + " OK " + Color::RESET
+            : Color::BRED   + Color::BOLD + " !! " + Color::RESET;
         std::string nameCol = r.passed
             ? Color::WHITE + r.name + Color::RESET
             : Color::DIM   + r.name + Color::RESET;
@@ -276,7 +341,7 @@ inline void printPatternSummary(const std::vector<PatternResult>& results) {
 }
 
 // ═══════════════════════════════════════════════
-//  DIAGNOSTICS CARD
+//  KIOSK DASHBOARD CARD
 // ═══════════════════════════════════════════════
 
 inline void printDiagCard(
@@ -286,46 +351,40 @@ inline void printDiagCard(
     const std::vector<std::string>& modules,
     bool healthy = true)
 {
-    // Fixed inner width — thin box chars are per-cell so no repeat issue
-    const int w = 52;
+    const int w = 54;
 
-    auto border = [&](const std::string& l, const std::string& mid, const std::string& r) {
-        std::cout << l << repeatStr(tH, w + 2) << r << "\n";
-    };
-
-    auto fieldRow = [&](const std::string& label, const std::string& val) {
-        int valW = w - (int)label.size();
-        if (valW < 0) valW = 0;
+    auto line = [&](const std::string& label, const std::string& val, const std::string& valColor = "") {
+        std::string valStr = valColor.empty() ? val : (valColor + val + Color::RESET);
+        int usedW = (int)label.size() + visibleLen(valStr);
+        int pad = w - usedW;
+        if (pad < 0) pad = 0;
         std::cout << tV << " " << Color::DIM << label << Color::RESET
-                  << padStr(val, valW) << " " << tV << "\n";
+                  << valStr << std::string(pad, ' ') << " " << tV << "\n";
     };
 
     std::string statusTxt = healthy ? "ONLINE" : "OFFLINE";
-    std::string statusCol = healthy
-        ? Color::BGREEN + statusTxt + Color::RESET
-        : Color::BRED   + statusTxt + Color::RESET;
+    std::string statusCol = healthy ? Color::BGREEN : Color::BRED;
 
-    border(tTL, "", tTR);
+    std::cout << tTL << repeatStr(tH, w + 2) << tTR << "\n";
 
-    // title: "  KioskName" left-aligned, "ONLINE" right-aligned
-    // visible: 2 + nameLen + spaces + statusLen(6/7) = w+2
-    int statusVis = (int)statusTxt.size();
+    // Title row
     int nameVis   = (int)kioskName.size();
+    int statusVis = (int)statusTxt.size() + 2; // brackets
     int spaces    = w + 2 - 2 - nameVis - statusVis;
     if (spaces < 1) spaces = 1;
     std::cout << tV
-              << "  " << Color::BOLD << Color::BCYAN
-              << kioskName << Color::RESET
+              << "  " << Color::BOLD << Color::BCYAN << kioskName << Color::RESET
               << std::string(spaces, ' ')
-              << statusCol
+              << statusCol << Color::BOLD << "[" << statusTxt << "]" << Color::RESET
               << tV << "\n";
 
-    border(tML, "", tMR);
-    fieldRow("Location : ", location);
-    fieldRow("Hardware : ", hardware);
+    std::cout << tML << repeatStr(tH, w + 2) << tMR << "\n";
+
+    line("  Location : ", location);
+    line("  Hardware : ", hardware, Color::BBLUE);
     for (auto& m : modules)
-        fieldRow("Module   : ", m);
-    border(tBL, "", tBR);
+        line("  Module   : ", m, Color::BGREEN);
+    std::cout << tBL << repeatStr(tH, w + 2) << tBR << "\n";
 }
 
 // ═══════════════════════════════════════════════
@@ -334,25 +393,32 @@ inline void printDiagCard(
 
 inline void printPaymentMenu() {
     std::cout << "\n";
+    printSection("Select Payment Method  [Adapter Pattern]");
     std::vector<TableCol> cols = {
-        {"#", 2}, {"Method", 8}, {"Description", 24}
+        {"#", 2}, {"Method", 8}, {"Gateway", 30}, {"Status", 8}
     };
     printTableHeader(cols);
-    printTableRow(cols, {"1", Color::BCYAN   + "UPI"    + Color::RESET, "Instant bank transfer"});
-    printTableRow(cols, {"2", Color::YELLOW  + "Card"   + Color::RESET, "Debit / Credit card"});
-    printTableRow(cols, {"3", Color::MAGENTA + "Wallet" + Color::RESET, "Digital wallet balance"});
+    printTableRow(cols, {"1", Color::BCYAN   + "UPI"    + Color::RESET, "Instant Bank Transfer (BHIM/GPay)", tag("LIVE", Color::BGREEN)});
+    printTableRow(cols, {"2", Color::YELLOW  + "Card"   + Color::RESET, "Debit / Credit (Visa/Mastercard)", tag("LIVE", Color::BGREEN)});
+    printTableRow(cols, {"3", Color::MAGENTA + "Wallet" + Color::RESET, "Digital Wallet (Paytm/PhonePe)",   tag("LIVE", Color::BGREEN)});
     printTableBot(cols);
 }
 
 // ═══════════════════════════════════════════════
-//  SECTION LABEL
+//  SIM COMPLETE
 // ═══════════════════════════════════════════════
 
-inline void printSection(const std::string& label) {
-    std::cout << "\n" << Color::CYAN << Color::BOLD
-              << "  > " << label << Color::RESET << "\n"
-              << Color::DIM << "  " << std::string(55, '-')
-              << Color::RESET << "\n";
+inline void printSimComplete() {
+    const int totalWidth = 66;
+    std::string title = "AURA RETAIL OS  --  SESSION ENDED";
+    int textLen = visibleLen(title);
+    int pad = totalWidth - textLen - 4;
+    
+    std::cout << "\n" << Color::BCYAN << Color::BOLD;
+    std::cout << tDTL << repeatStr(tDH, totalWidth - 2) << tDTR << "\n";
+    std::cout << tDV << " " << std::string(pad/2, ' ') << title << std::string(pad - pad/2, ' ') << " " << tDV << "\n";
+    std::cout << tDBL << repeatStr(tDH, totalWidth - 2) << tDBR << "\n";
+    std::cout << Color::RESET;
 }
 
 } // namespace AuraCLI

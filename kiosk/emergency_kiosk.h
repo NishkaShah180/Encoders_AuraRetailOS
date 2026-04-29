@@ -5,8 +5,8 @@
 
 class EmergencyKiosk : public IKiosk {
 public:
-    EmergencyKiosk(const std::string& location, std::shared_ptr<IDispenser> disp)
-        : IKiosk(location, "EmergencyKiosk_User", disp) {
+    EmergencyKiosk(const std::string& location, std::shared_ptr<IDispenser> disp, std::shared_ptr<RealInventory> inv)
+        : IKiosk(location, "EmergencyKiosk_User", disp, inv) {
         std::cout << "[EmergencyKiosk] Initialized at " << location << "\n";
         std::cout << "[EmergencyKiosk] Active hardware: " << dispenser->getDispenserType() << "\n";
     }

@@ -1,10 +1,19 @@
 {
   "inventory": [
-    { "item": "Water Bottle", "quantity": 14 },
-    { "item": "Energy Bar", "quantity": 10 },
-    { "item": "Paracetamol", "quantity": 8 },
+    { "item": "Antiseptic", "quantity": 10 },
     { "item": "Bandage", "quantity": 20 },
+    { "item": "Chips", "quantity": 20 },
+    { "item": "Cough Syrup", "quantity": 5 },
+    { "item": "Emergency Kit", "quantity": 5 },
+    { "item": "Energy Bar", "quantity": 10 },
+    { "item": "Face Mask", "quantity": 50 },
+    { "item": "First Aid Kit", "quantity": 6 },
+    { "item": "Flashlight", "quantity": 8 },
+    { "item": "Fruit Juice", "quantity": 11 },
     { "item": "Meal Kit", "quantity": 6 },
-    { "item": "Emergency Kit", "quantity": 5 }
+    { "item": "Paracetamol", "quantity": 8 },
+    { "item": "Power Bank", "quantity": 4 },
+    { "item": "Sandwich", "quantity": 12 },
+    { "item": "Water Bottle", "quantity": 16 }
   ]
 }

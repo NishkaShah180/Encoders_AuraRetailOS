@@ -2,23 +2,9 @@
   "transactions": [
     {
       "type": "PURCHASE",
-      "item": "Emergency Kit",
-      "amount": 93.5,
-      "payment": "Card",
-      "status": "Success"
-    },
-    {
-      "type": "REFUND",
-      "item": "Emergency Kit",
-      "amount": 93.5,
-      "payment": "Card",
-      "status": "Refunded"
-    },
-    {
-      "type": "PURCHASE",
-      "item": "Water Bottle",
-      "amount": 20,
-      "payment": "Card",
+      "item": "Fruit Juice",
+      "amount": 160,
+      "payment": "UPI (happy@upi)",
       "status": "Success"
     }
   ]

@@ -83,13 +83,46 @@ public:
         std::cout << "[Persistence] Config saved to config.json\n";
     }
 
+    static void loadInventory(RealInventory& inventory) {
+        std::ifstream file("persistence/data/inventory.json");
+        if (!file.is_open()) {
+            std::cout << "[Persistence] No existing inventory.json found. Using defaults.\n";
+            return;
+        }
+
+        std::string line;
+        std::string currentItem = "";
+        while (std::getline(file, line)) {
+            // Primitive JSON parser for "item": "..." and "quantity": ...
+            size_t itemPos = line.find("\"item\": \"");
+            if (itemPos != std::string::npos) {
+                size_t start = itemPos + 9;
+                size_t end = line.find("\"", start);
+                currentItem = line.substr(start, end - start);
+            }
+
+            size_t qtyPos = line.find("\"quantity\": ");
+            if (qtyPos != std::string::npos && !currentItem.empty()) {
+                size_t start = qtyPos + 12;
+                size_t end = line.find_first_of(", \r\n}", start);
+                int qty = std::stoi(line.substr(start, end - start));
+                inventory.addItem(currentItem, qty);
+                currentItem = ""; // Reset for next item
+            }
+        }
+        file.close();
+        std::cout << "[Persistence] Inventory loaded from inventory.json\n";
+    }
+
     static void saveAll(InventoryProxy& inventory,
                         const std::vector<std::string>& itemNames,
                         CommandLogger& logger,
                         const std::vector<LogEntry>& entries,
                         const std::string& dispenserType,
                         const std::string& location) {
+        // Create directory if not exists
         system("if not exist persistence\\data mkdir persistence\\data");
+        
         std::cout << "\n------------------------------------------------------------\n";
         std::cout << " PHASE: Persistence -- Saving System State\n";
         std::cout << "------------------------------------------------------------\n";

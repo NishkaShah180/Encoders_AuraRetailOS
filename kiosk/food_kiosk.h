@@ -5,8 +5,8 @@
 
 class FoodKiosk : public IKiosk {
 public:
-    FoodKiosk(const std::string& location, std::shared_ptr<IDispenser> disp)
-        : IKiosk(location, "FoodKiosk_User", disp) {
+    FoodKiosk(const std::string& location, std::shared_ptr<IDispenser> disp, std::shared_ptr<RealInventory> inv)
+        : IKiosk(location, "FoodKiosk_User", disp, inv) {
         std::cout << "[FoodKiosk] Initialized at " << location << "\n";
         std::cout << "[FoodKiosk] Active hardware: " << dispenser->getDispenserType() << "\n";
     }

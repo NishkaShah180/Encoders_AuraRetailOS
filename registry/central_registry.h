@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include "../inventory/hardware/idispenser.h"
 #include "../inventory/inventory_proxy.h"
 #include "../inventory/inventory_item.h"
@@ -14,8 +15,6 @@ struct CatalogEntry {
 };
 
 class CentralRegistry {
-    static CentralRegistry* instance;
-
     std::shared_ptr<IDispenser> dispenser;
     std::shared_ptr<IPayment> payment;
     std::vector<CatalogEntry> catalog;
@@ -25,10 +24,10 @@ class CentralRegistry {
     }
 
 public:
+    // Meyer's Singleton — thread-safe, no separate .cpp needed [Singleton Pattern]
     static CentralRegistry* getInstance() {
-        if (!instance)
-            instance = new CentralRegistry();
-        return instance;
+        static CentralRegistry inst;
+        return &inst;
     }
 
     void setDispenser(std::shared_ptr<IDispenser> d) { dispenser = d; }
@@ -87,12 +86,17 @@ public:
             entry.item->display();
     }
 
-    static void resetInstance() {
-        delete instance;
-        instance = nullptr;
+    const std::vector<CatalogEntry>& getCatalog() const { return catalog; }
+
+    void removeFromCatalog(const std::string& name, const std::string& kioskType) {
+        catalog.erase(
+            std::remove_if(catalog.begin(), catalog.end(),
+                [&](const CatalogEntry& e) {
+                    return e.item->getName() == name && e.kioskType == kioskType;
+                }),
+            catalog.end());
+        std::cout << "[CentralRegistry] Removed: " << name << "\n";
     }
 
     ~CentralRegistry() {}
 };
-
-CentralRegistry* CentralRegistry::instance = nullptr;

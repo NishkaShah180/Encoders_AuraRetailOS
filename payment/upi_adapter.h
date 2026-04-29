@@ -3,6 +3,7 @@
 #include <string>
 #include "payment_interface.h"
 
+// Adaptee — existing UPI system (unchanged)
 class RealUPISystem {
 public:
     void sendViaUPI(const std::string& upiId, double amount) {
@@ -11,22 +12,30 @@ public:
     }
 };
 
+// Adapter — wraps RealUPISystem to implement IPayment [Adapter Pattern]
 class UPIAdapter : public IPayment {
     RealUPISystem upiSystem;
-    std::string upiId;
-public:
-    bool pay(double amount) override {
-        std::cout << "[UPI Payment] Enter your UPI ID: ";
-        std::cin >> upiId;
+    std::string   savedUpiId;
+    bool          initialized = false;   // credentials stored once per session
 
-        if (upiId.find('@') == std::string::npos) {
-            std::cout << "[UPI Payment] Invalid UPI ID. Payment failed.\n";
+public:
+    // Called ONCE when the customer session starts
+    void setupUPI(const std::string& upiId) {
+        savedUpiId  = upiId;
+        initialized = true;
+    }
+
+    // pay() never prompts — uses saved session credentials
+    bool pay(double amount) override {
+        if (!initialized) {
+            std::cout << "[UPI Payment] No UPI ID configured. Payment failed.\n";
             return false;
         }
         std::cout << "[UPIAdapter] Converting to UPI interface...\n";
-        upiSystem.sendViaUPI(upiId, amount);
-        std::cout << "Paid Rs." << amount << " using UPI ID: " << upiId << "\n";
+        upiSystem.sendViaUPI(savedUpiId, amount);
+        std::cout << "Paid Rs." << amount << " using UPI ID: " << savedUpiId << "\n";
         return true;
     }
+
     std::string getProviderName() { return "UPI"; }
 };

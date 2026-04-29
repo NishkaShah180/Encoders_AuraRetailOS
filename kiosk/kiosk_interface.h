@@ -12,8 +12,8 @@ protected:
     std::shared_ptr<IDispenser> dispenser;
 
 public:
-    IKiosk(const std::string& loc, const std::string& user, std::shared_ptr<IDispenser> disp)
-        : location(loc), inventory(user), dispenser(disp) {}
+    IKiosk(const std::string& loc, const std::string& user, std::shared_ptr<IDispenser> disp, std::shared_ptr<RealInventory> inv)
+        : location(loc), inventory(user, inv), dispenser(disp) {}
 
     void swapDispenser(std::shared_ptr<IDispenser> newDispenser) {
         std::cout << "[HardwareManager] Swapping dispenser: "
