@@ -9,12 +9,12 @@
     { "item": "First Aid Kit", "quantity": 10 },
     { "item": "Flashlight", "quantity": 10 },
     { "item": "Fruit Juice", "quantity": 10 },
-    { "item": "Maggie", "quantity": 9 },
+    { "item": "Maggie", "quantity": 10 },
     { "item": "Meal Kit", "quantity": 10 },
     { "item": "Momos", "quantity": 10 },
     { "item": "Paracetamol", "quantity": 8 },
-    { "item": "Power Bank", "quantity": 9 },
-    { "item": "Sandwich", "quantity": 7 },
-    { "item": "Water Bottle", "quantity": 8 }
+    { "item": "Power Bank", "quantity": 8 },
+    { "item": "Sandwich", "quantity": 10 },
+    { "item": "Water Bottle", "quantity": 6 }
   ]
 }

@@ -3,7 +3,7 @@
     {
       "type": "PURCHASE",
       "item": "Water Bottle",
-      "amount": 20,
+      "amount": 40,
       "payment": "UPI (varu@upi)",
       "status": "Success"
     },
@@ -23,7 +23,7 @@
     },
     {
       "type": "RESTOCK",
-      "item": "Energy Bar",
+      "item": "Sandwich",
       "amount": 0,
       "payment": "-",
       "status": "Done"

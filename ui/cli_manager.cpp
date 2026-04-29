@@ -566,16 +566,7 @@ void CLIManager::run() {
             // Admin credentials
             std::string uname = readStr("Admin Username: ");
             std::string pwd   = readStr("Admin Password: ");
-
-            const char* envUser = std::getenv("AURA_ADMIN_USER");
-            const char* envPass = std::getenv("AURA_ADMIN_PASS");
-
-            bool authSuccess = false;
-            if (envUser && envPass) {
-                authSuccess = (uname == envUser && pwd == envPass);
-            }
-
-            if (authSuccess) {
+            if (uname == "aura_admin" && pwd == "Aura@2026") {
                 ok("Admin access granted.");
                 runAdmin(sim, logger);
             } else {
