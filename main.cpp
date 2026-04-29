@@ -3,8 +3,10 @@
 #include "pretty_print.h"
 
 // Include module implementations — enables single-file compilation:
-//   g++ main.cpp -o ARS
 #include "core/simulation_runner.cpp"
+#include "core/otp_manager.cpp"
+#include "email/smtp_client.cpp"
+#include "email/email_service.cpp"
 #include "ui/cli_manager.cpp"
 
 int main() {

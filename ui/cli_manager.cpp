@@ -18,6 +18,8 @@
 #include "../payment/upi_adapter.h"
 #include "../payment/card_adapter.h"
 #include "../payment/wallet_adapter.h"
+#include "../email/email_service.h"
+#include "../core/otp_manager.h"
 
 using namespace AuraCLI;
 
@@ -161,7 +163,7 @@ static void printReceipt(const std::string& item, int qty, double total,
 
 // ─── CUSTOMER FLOW ─────────────────────────────────────────────────────
 static void runCustomer(SimulationRunner& sim, const std::string& username,
-                        CommandLogger& logger) {
+                        const std::string& email, CommandLogger& logger) {
     CentralRegistry* reg = CentralRegistry::getInstance();
 
     // Step 1: Kiosk selection
@@ -188,6 +190,10 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
     // Step 2: Kiosk Dashboard
     hdr("STEP 2 of 3  >>  KIOSK DASHBOARD", Color::BGREEN);
     printDiagCard(kt + " Kiosk", location, disp->getDispenserType(), mods, true);
+
+    // Email Service & Session Tracking
+    EmailService emailSvc;
+    std::vector<PurchaseInfo> sessionPurchases;
 
     // Payment session variables — initialized lazily on first purchase
     std::shared_ptr<IPayment> sessionPayment = nullptr;
@@ -270,6 +276,13 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
                 std::cout << "\n  " << tag(" PAYMENT SUCCESS ", Color::BGREEN)
                           << "  " << lastItem << " x" << qty << "  Rs." << (int)total << "\n";
                 printReceipt(lastItem, qty, total, pname, location);
+                
+                // Send Receipt Email
+                PurchaseInfo pInfo = {lastItem, qty, total, pname, location};
+                sessionPurchases.push_back(pInfo);
+                info("Sending receipt to " + email + "...");
+                emailSvc.sendReceiptAsync(email, username, pInfo);
+
                 info("Stock updated. New stock: " + std::to_string(userInv.getStock(lastItem)));
             } else {
                 lastOk = false;
@@ -464,14 +477,50 @@ void CLIManager::run() {
         } else if (role == 1) {
             std::string uname = readStr("Enter your name: ");
             if (uname.empty()) uname = "Guest";
-            info("Welcome, " + uname + "!");
-            runCustomer(sim, uname, logger);
+            
+            EmailService emailSvc;
+            std::string email;
+            while (true) {
+                email = readStr("Enter email address: ");
+                if (emailSvc.validateEmail(email)) break;
+                fail("Invalid email format! Please try again.");
+            }
+
+            // OTP Flow
+            info("Generating OTP...");
+            std::string otp = OTPManager::generateOTP(email);
+            
+            if (emailSvc.sendOTP(email, uname, otp)) {
+                ok("OTP sent to " + email);
+                bool verified = false;
+                for (int i = 0; i < 3; i++) {
+                    std::string inputOtp = readStr("Enter 6-digit OTP: ");
+                    if (OTPManager::verifyOTP(email, inputOtp)) {
+                        ok("OTP Verified! Starting session...");
+                        verified = true;
+                        break;
+                    } else {
+                        fail("Invalid or expired OTP. Attempts remaining: " + std::to_string(2 - i));
+                    }
+                }
+                
+                if (verified) {
+                    info("Welcome, " + uname + "!");
+                    runCustomer(sim, uname, email, logger);
+                } else {
+                    fail("OTP Verification failed. Access DENIED.");
+                    pause();
+                }
+            } else {
+                fail("Failed to send OTP. Please check your SMTP settings.");
+                pause();
+            }
 
         } else if (role == 2) {
             // Admin credentials
             std::string uname = readStr("Admin Username: ");
             std::string pwd   = readStr("Admin Password: ");
-            if (uname == "aura_admin" && pwd == "Aura@OS2024") {
+            if (uname == "aura_admin" && pwd == "REDACTED") {
                 ok("Admin access granted.");
                 runAdmin(sim, logger);
             } else {

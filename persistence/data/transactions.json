@@ -1,11 +1,32 @@
 {
   "transactions": [
     {
-      "type": "PURCHASE",
-      "item": "Fruit Juice",
-      "amount": 160,
-      "payment": "UPI (happy@upi)",
-      "status": "Success"
+      "type": "RESTOCK",
+      "item": "Power Bank",
+      "amount": 0,
+      "payment": "-",
+      "status": "Done"
+    },
+    {
+      "type": "RESTOCK",
+      "item": "Emergency Kit",
+      "amount": 0,
+      "payment": "-",
+      "status": "Done"
+    },
+    {
+      "type": "RESTOCK",
+      "item": "Flashlight",
+      "amount": 0,
+      "payment": "-",
+      "status": "Done"
+    },
+    {
+      "type": "RESTOCK",
+      "item": "First Aid Kit",
+      "amount": 0,
+      "payment": "-",
+      "status": "Done"
     }
   ]
 }

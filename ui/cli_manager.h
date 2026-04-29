@@ -8,6 +8,7 @@ class CLIManager {
     SimulationRunner& sim;
     Role currentRole = Role::NONE;
     std::string currentUser;
+    std::string verifiedCustomerEmail;
 
 public:
     CLIManager(SimulationRunner& s);
