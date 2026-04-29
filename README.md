@@ -4,7 +4,7 @@
 
 Aura Retail OS is a modular C++ simulation of an intelligent retail kiosk system deployed across a smart-city environment. The project demonstrates how classic Object-Oriented Design Patterns can be applied to build scalable, flexible, and maintainable systems.
 
-> A structured 11-phase simulation showcasing modern Object-Oriented Design Patterns through inventory security, composite bundles, SMTP integration, runtime hardware swapping, and modular kiosk architecture.
+> An interactive smart-city kiosk simulation showcasing Object-Oriented Design Patterns through inventory security, SMTP verification, composite bundles, runtime hardware abstraction, and modular kiosk architecture.
 
 ---
 
@@ -50,61 +50,84 @@ g++ main.cpp -o ARS
 
 ## 🏗️ Project Structure
 
-```
+```text
 AuraRetailOS/
 │
-├── main.cpp                          # Entry point — 11-phase simulation driver
-├── pretty_print.h                    # CLI formatting — tables, phase boxes, colours
+├── main.cpp                          # Entry point — launches CLI manager
+├── pretty_print.h                    # CLI formatting — tables, banners, colours
+├── .gitignore                        # Git ignored files/config
 │
-├── registry/
-│   └── central_registry.h            # Singleton — global catalog + dispenser/payment store
+├── core/                             # Core system controllers
+│   ├── otp_manager.h                 # OTP generation & verification logic
+│   ├── otp_manager.cpp               # OTP implementation
+│   ├── simulation_runner.h           # Simulation lifecycle manager
+│   └── simulation_runner.cpp         # Startup + runtime orchestration
+│
+├── ui/                               # Terminal Interface Layer
+│   ├── cli_manager.h                 # Interactive terminal menu system
+│   └── cli_manager.cpp               # Customer/Admin CLI flow
+│
+├── registry/                         # Singleton Pattern
+│   ├── central_registry.h            # Global catalog + shared services
+│   └── central_registry.cpp          # Registry implementation
 │
 ├── kiosk/                            # Factory Pattern
-│   ├── ikiosk.h                      # Kiosk interface
-│   ├── kiosk_factory.h               # Factory — creates Food/Pharmacy/Emergency kiosks
-│   ├── food_kiosk.h                  # Food kiosk logic
-│   ├── pharmacy_kiosk.h              # Pharmacy kiosk logic
-│   └── emergency_kiosk.h             # Emergency kiosk logic
+│   ├── kiosk_interface.h             # Base kiosk abstraction
+│   ├── kiosk_factory.h               # Creates kiosk types dynamically
+│   ├── food_kiosk.h                  # Food kiosk implementation
+│   ├── pharmacy_kiosk.h              # Pharmacy kiosk implementation
+│   └── emergency_kiosk.h             # Emergency kiosk implementation
 │
-├── inventory/                        # Proxy Pattern
+├── inventory/                        # Proxy + Composite Pattern
 │   ├── inventory_interface.h         # Inventory abstraction
-│   ├── real_inventory.h              # Actual stock store
-│   ├── inventory_proxy.h             # Proxy — PIN auth, session management, logging
 │   ├── inventory_item.h              # IInventoryItem interface
-│   ├── product.h                     # Leaf node (Composite Pattern)
-│   ├── bundle.h                      # Composite node — holds products/bundles + discount
-│   └── hardware/
+│   ├── real_inventory.h              # Actual inventory store
+│   ├── inventory_proxy.h             # Access control + logging layer
+│   ├── product.h                     # Leaf product node
+│   ├── bundle.h                      # Composite bundle node
+│   │
+│   └── hardware/                     # Hardware abstraction
 │       ├── idispenser.h              # Dispenser interface
 │       ├── spiral_dispenser.h        # Spiral dispenser implementation
 │       └── conveyor_dispenser.h      # Conveyor dispenser implementation
 │
 ├── payment/                          # Adapter Pattern
-│   ├── payment_interface.h           # IPayment — unified interface
-│   ├── upi_adapter.h                 # UPI adapter
-│   ├── card_adapter.h                # Card adapter
-│   └── wallet_adapter.h              # Wallet adapter
+│   ├── payment_interface.h           # Unified IPayment interface
+│   ├── upi_adapter.h                 # UPI payment adapter
+│   ├── card_adapter.h                # Card payment adapter
+│   └── wallet_adapter.h              # Wallet payment adapter
 │
-├── email/                            # SMTP Integration
-│   ├── smtp_client.cpp               # SMTP email sending logic
-│   └── email_service.h               # OTP + receipt handling
+├── email/                            # SMTP Email Integration
+│   ├── smtp_client.h                 # SMTP client declaration
+│   ├── smtp_client.cpp               # SMTP sending implementation
+│   ├── email_service.h               # OTP + receipt service
+│   └── email_service.cpp             # Email workflow implementation
 │
 ├── decorator/                        # Decorator Pattern
-│   ├── kiosk_decorator.h             # Base decorator
-│   ├── network_decorator.h           # Adds network module to kiosk
-│   ├── refrigeration_decorator.h     # Adds refrigeration module
+│   ├── kiosk_decorator.h             # Base kiosk decorator
+│   ├── network_decorator.h           # Adds network capability
+│   ├── refrigeration_decorator.h     # Adds cooling module
 │   └── solar_decorator.h             # Adds solar power module
 │
 ├── commands/                         # Command Pattern
 │   ├── icommand.h                    # Command interface
-│   ├── purchase_command.h            # Executes a purchase
-│   ├── refund_command.h              # Undoes a purchase (undo)
-│   ├── restock_command.h             # Restocks inventory
-│   └── command_logger.h              # Logs all commands to transaction history
+│   ├── purchase_command.h            # Purchase execution
+│   ├── refund_command.h              # Undo purchase
+│   ├── restock_command.h             # Inventory refill command
+│   └── command_logger.h              # Transaction command log
 │
-└── persistence/
-    └── persistence_manager.h         # Saves inventory/transactions/config to JSON
+├── persistence/                      # Persistence Layer
+│   ├── persistence_manager.h         # JSON save/load manager
+│   │
+│   └── data/
+│       ├── inventory.json            # Inventory persistence
+│       ├── transactions.json         # Transaction history
+│       └── config.json               # System configuration
+│
+├── ars.exe                           # Compiled executable (generated)
+├── AuraOS.exe                        # Alternate compiled build
+└── README.md                         # Project documentation
 ```
-
 ---
 
 ## 🎭 Design Patterns Used
@@ -215,20 +238,23 @@ Features include:
 
 ### ▶️ Recommended Input Sequence
 
-| Phase | Prompt | Input | Purpose |
-|-------|--------|-------|---------|
-| 6 | Select payment method | `2` | Card payment |
-| 7 | Select kiosk | `3` | EmergencyKiosk — most complex |
-| 7 | Select item | `1` | Emergency Kit — nested bundle |
-| 7 | Enter access PIN | `1234` | Proxy security check |
-| 7 | Enter card number | `9876543210123456` | Any 16 digits |
-| 7 | Enter CVV | `321` | Any 3 digits |
-| 8 | Refund? | `1` | Demonstrates Command undo |
-| 9 | Restock | `0` | Skip |
-| 10 | Select food item | `1` | Water Bottle via swapped hardware |
-| 10 | Enter card number | `9876543210123456` | Same card |
-| 10 | Enter CVV | `321` | Same CVV |
-
+| Step | Prompt | Input | Purpose |
+|------|--------|--------|---------|
+| 1 | Select Main Menu | `1` | Start Customer Session |
+| 2 | Enter Name | `Varu` | Customer registration |
+| 3 | Enter Email | `varu@gmail.com` | SMTP OTP verification |
+| 4 | Enter OTP | `582931` | Email authentication |
+| 5 | Select Kiosk | `1` | Food Kiosk |
+| 6 | Add Item to Cart | `1` | Open inventory |
+| 7 | Select Item | `6` | Meal Kit Bundle |
+| 8 | Enter Quantity | `2` | Add bundle to cart |
+| 9 | View Cart & Checkout | `2` | Proceed to payment |
+| 10 | Confirm Checkout | `1` | Begin payment |
+| 11 | Select Payment Method | `1` | UPI payment |
+| 12 | Enter UPI ID | `varu@okaxis` | Payment authentication |
+| 13 | Admin Terminal | `2` | Access admin features |
+| 14 | Admin Action | `1` | Restock all kiosks |
+| 15 | Shutdown | `0` | Exit simulation |
 ---
 
 ### 🖥️ Full Simulation Output
@@ -237,119 +263,201 @@ Features include:
 <summary>Click to expand full output</summary>
 
 ```text
-+==================================================================+
-|       AURA RETAIL OS  --  INTERACTIVE TERMINAL SYSTEM            |
-+==================================================================+
+══════════════════════════════════════════════════════════════════
+     AURA RETAIL OS  //  SMART CITY KIOSK NETWORK  v2.0
+══════════════════════════════════════════════════════════════════
+     Powered by Encoders Team  |  OOP Design Patterns Demo
+──────────────────────────────────────────────────────────────────
 
-[1] Customer Session
-[2] Admin Terminal
-[0] Shutdown
->> Select option: 1
 
-+==================================================================+
-| STEP 1 of 3  >>  CUSTOMER REGISTRATION                           |
-+==================================================================+
-[i] Enter Name: Varu
-[i] Enter Email: varu@gmail.com
-[i] Validating email format... [OK]
-[i] Sending 6-digit OTP to varu@gmail.com...
-[SMTP Success] OTP sent successfully via Gmail.
+  >> Singleton Registry Init
+  ------------------------------------------------------------
+[CentralRegistry] Singleton instance created.
+  [  OK  ] CentralRegistry instantiated           [Singleton Pattern]
+  [  OK  ] Singleton verified — same pointer returned
+  [  OK  ] Shared RealInventory → allocated (stock persists across all sessions)
+[Persistence] Inventory loaded from inventory.json
+  [  OK  ] PersistenceManager → inventory.json checked and loaded
 
-[i] Please enter the OTP sent to your email: 582931
-[OK] OTP Verified. Access granted to AURA Kiosks.
+  >> Hardware Interface Layer
+  ------------------------------------------------------------
+  [  OK  ] Spiral Dispenser → registered as default hardware
+  [  OK  ] Conveyor Dispenser → standby unit loaded
 
-+==================================================================+
-| STEP 2 of 3  >>  KIOSK SELECTION                                 |
-+==================================================================+
-[1] Food Kiosk      (Metro Station - Gate 2)
-[2] Pharmacy Kiosk  (City Hospital - Wing B)
-[3] Emergency Kiosk (Disaster Zone - Sector 4)
+  >> Kiosk Factory [Factory Pattern]
+  ------------------------------------------------------------
+[KioskFactory] Creating kiosk of type: food
+[FoodKiosk] Initialized at Metro Station - Gate 2
+[FoodKiosk] Active hardware: Spiral Dispenser
+
+[KioskFactory] Creating kiosk of type: pharmacy
+[PharmacyKiosk] Initialized at City Hospital - Wing B
+[PharmacyKiosk] Active hardware: Spiral Dispenser
+
+[KioskFactory] Creating kiosk of type: emergency
+[EmergencyKiosk] Initialized at Disaster Zone - Sector 4
+[EmergencyKiosk] Active hardware: Conveyor Dispenser
+
+  [  OK  ] FoodKiosk → Metro Station - Gate 2
+  [  OK  ] PharmacyKiosk → City Hospital - Wing B
+  [  OK  ] EmergencyKiosk → Disaster Zone - Sector 4
+
+  >> Decorator Module Attach [Decorator Pattern]
+  ------------------------------------------------------------
+[NetworkDecorator] Module attached. Signal strength: 94%
+[RefrigerationDecorator] Module attached. Temperature set to 4C
+[SolarDecorator] Module attached. Battery level: 87%
+
+  >> Inventory Catalog Sync [Composite Pattern]
+  ------------------------------------------------------------
+  [  OK  ] Food Catalog → 6 items registered
+  [  OK  ] Pharmacy Catalog → 5 items registered
+  [  OK  ] Emergency Catalog → 4 items registered
+
+  >> System Ready
+  ------------------------------------------------------------
+  [  OK  ] Payment Gateway → Standby
+  [  OK  ] Command Engine → Loaded
+  [  OK  ] Inventory Proxy → Armed
+  [  OK  ] Persistence Manager → Initialized
+
+  >> AURA RETAIL OS READY  --  ALL SYSTEMS NOMINAL
+
+Press ENTER to launch the kiosk interface...
+
+
+╔══════════════════════════════════════════════════════════════╗
+║  AURA RETAIL OS  //  SELECT ACCESS MODE                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+[1] Customer Access
+[2] Admin Login
+[0] Shut Down System
+
+>> Select mode: 1
+
+>> Enter your name: hardi
+>> Enter email address: dhadhalhardi2004@gmail.com
+
+[ INFO ] Generating OTP...
+[SMTP Success] Email sent successfully
+[ OK ] OTP sent successfully
+
+>> Enter 6-digit OTP: 605552
+[ OK ] OTP Verified! Starting session...
+
+╔══════════════════════════════════════════════════════════════╗
+║  STEP 1 of 3  >>  SELECT YOUR KIOSK                          ║
+╚══════════════════════════════════════════════════════════════╝
+
+[1] Food Kiosk
+[2] Pharmacy Kiosk
+[3] Emergency Kiosk
+
 >> Select kiosk: 1
 
-+==================================================================+
-| STEP 3 of 3  >>  CUSTOMER TERMINAL  //  Metro Station - Gate 2   |
-+==================================================================+
+╔══════════════════════════════════════════════════════════════╗
+║  STEP 2 of 3  >>  KIOSK DASHBOARD                            ║
+╚══════════════════════════════════════════════════════════════╝
+
+Food Kiosk → Metro Station - Gate 2
+Hardware → Spiral Dispenser
+Modules → Network 94%, Refrigeration 4C
+
+╔══════════════════════════════════════════════════════════════╗
+║  STEP 3 of 3  >>  CUSTOMER TERMINAL                          ║
+╚══════════════════════════════════════════════════════════════╝
+
 [1] Add Item to Cart
 [2] View Cart & Checkout
 [3] View Current Stock
+[4] Refund Last Purchase
 [0] Exit Terminal
+
 >> Select option: 1
 
-INVENTORY // food
-┌────┬────────────────────────┬───────────┬─────────┬───────┐
-│ #  │ Item                   │ Type      │ Price   │ Stock │
-├────┼────────────────────────┼───────────┼─────────┼───────┤
-│ 1  │ Water Bottle           │ Food      │ Rs.20   │ 11    │
-│ 6  │ Meal Kit (Bundle)      │ Food      │ Rs.45   │ 6     │
-└────┴────────────────────────┴───────────┴─────────┴───────┘
->> Select item number: 6
+PRODUCT CATALOGUE // FOOD
 
-BUNDLE DETAILS: Meal Kit (10% off)
-> Meal Kit (10% off) | Subtotal: Rs.45
-  |- Water Bottle    | Food       | Rs.20
-  |- Energy Bar      | Food       | Rs.30
--------------------------------------------------------
-[i] Enter quantity: 2
-[OK] Meal Kit (Bundle) x2 added to cart.
+Water Bottle → Rs.20
+Sandwich → Rs.50
+Meal Kit Bundle → Rs.45
 
->> Select option: 2
+>> Select item: Water Bottle
+>> Quantity: 1
+[ OK ] Added to cart
+
+>> Select item: Sandwich
+>> Quantity: 2
+[ OK ] Added to cart
 
 YOUR SHOPPING CART
 -----------------------------------
-  - Meal Kit (Bundle)    x2  Rs.90
-  - Water Bottle         x1  Rs.20
+Water Bottle x1 → Rs.20
+Sandwich x2 → Rs.100
 -----------------------------------
-[i] TOTAL PAYABLE: Rs.110
->> Proceed to payment? [1=Yes / 0=Cancel]: 1
+TOTAL PAYABLE → Rs.120
 
-PAYMENT SETUP   >>   Adapter Pattern
-[1] UPI gateway
-[2] Card terminal
-[3] Digital Wallet
->> Select option: 1
+>> Proceed to payment: 1
 
-[i] Enter UPI ID: varu@okaxis
-[OK] UPI ID verified. Payment locked for session.
+PAYMENT SETUP  // Adapter Pattern
+
+[1] UPI
+[2] Card
+[3] Wallet
+
+>> Select payment: 1
+>> Enter UPI ID: varu@upi
+
+[ OK ] UPI verified and saved for session
+
+[PurchaseCommand] Executing purchase...
+[InventoryProxy] PIN verified
+[UPIAdapter] Payment processed
+[SpiralDispenser] Dispensing item
 
 ╔══════════════════════════════════════════════╗
 ║         AURA RETAIL OS  --  RECEIPT          ║
 ╠══════════════════════════════════════════════╣
-║  Location:            Metro Station - Gate 2 ║
-║  Payment:                     UPI (varu@...) ║
+║  Water Bottle (x1)                 Rs.20     ║
+║  Sandwich (x2)                    Rs.100     ║
 ║  ------------------------------------------  ║
-║  Meal Kit (Bundle) (x2)               Rs.90  ║
-║  Water Bottle (x1)                    Rs.20  ║
-║  ------------------------------------------  ║
-║  TOTAL PAID:                         Rs.110  ║
-║  Status:                   PAID / SUCCESSFUL ║
+║  TOTAL PAID:                      Rs.120     ║
+║  Status:                PAID / SUCCESSFUL    ║
 ╚══════════════════════════════════════════════╝
 
-[i] Sending consolidated receipt to varu@gmail.com...
-[SMTP Success] Receipt delivered successfully.
-[OK] Checkout complete! All items dispensed.
+[SMTP Success] Receipt sent successfully
+[ OK ] Checkout complete
 
-+==================================================================+
-| ADMIN TERMINAL  //  System Management                            |
-+==================================================================+
-[i] Admin Username: aura_admin
-[i] Admin Password: •••••••••••
-[OK] Admin access granted.
+>> Refund Last Purchase
+[RefundCommand] Refund processed
+[InventoryProxy] Stock restored
 
-[1] Restock All Kiosks
-[2] View Global Audit Log
-[3] System Diagnostics
->> Select option: 1
+>> Select mode: 0
 
-[Admin] Restocking Metro Station - Gate 2... [OK]
-[Admin] Restocking City Hospital - Wing B... [OK]
-[Admin] Restocking Disaster Zone - Sector 4... [OK]
+╔══════════════════════════════════════════════════════════════╗
+║  SAVING SYSTEM STATE  //  Persistence                        ║
+╚══════════════════════════════════════════════════════════════╝
 
-[OK] All system inventories restored to maximum capacity.
+[Persistence] Inventory saved
+[Persistence] Transactions saved
+[Persistence] Config saved
 
-[i] Saving system state to persistence/data/... [OK]
-[i] Shutdown complete.
+╔════════════════════════════════════════════════════════════════╗
+║               AURA RETAIL OS  --  SESSION ENDED              ║
+╚════════════════════════════════════════════════════════════════╝
+
+Singleton   → Verified
+Factory     → Verified
+Adapter     → Verified
+Proxy       → Verified
+Decorator   → Verified
+Composite   → Verified
+Command     → Verified
+Persistence → Verified
 ```
+
 </details>
+
 ---
 
 ### 🔍 Pattern Highlights
@@ -380,6 +488,20 @@ PAYMENT SETUP   >>   Adapter Pattern
 
 **4. Real SMTP Integration**
 > OTP verification and receipt delivery are handled using Gmail SMTP, bringing real-world authentication into the simulation.
+
+---
+
+## 🧠 System Architecture Highlights
+
+- Shared inventory persists across sessions using Singleton Registry
+- Customer + Admin modes run through a centralized CLI manager
+- OTP authentication handled through SMTP email integration
+- Payment gateways unified using Adapter Pattern
+- Inventory protection enforced using Proxy authorization
+- Runtime modules added dynamically using Decorator Pattern
+- Product bundles recursively calculated using Composite Pattern
+- Purchase/refund operations encapsulated using Command Pattern
+- JSON persistence restores system state across launches
 
 ---
 
