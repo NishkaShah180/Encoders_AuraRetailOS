@@ -4,7 +4,7 @@
 
 Aura Retail OS is a modular C++ simulation of an intelligent retail kiosk system deployed across a smart-city environment. The project demonstrates how classic Object-Oriented Design Patterns can be applied to build scalable, flexible, and maintainable systems.
 
-> A structured 11-phase simulation showcasing how 8 design patterns solve real-world system design problems — with a polished CLI, live transaction logging, and runtime hardware swapping.
+> A structured 11-phase simulation showcasing modern Object-Oriented Design Patterns through inventory security, composite bundles, SMTP integration, runtime hardware swapping, and modular kiosk architecture.
 
 ---
 
@@ -39,11 +39,12 @@ g++ main.cpp -o ARS
 | 2 | Secure Proxy Layer | Inventory access is PIN-controlled, session-managed, and logged |
 | 3 | Adapter-based Payments | UPI, Card, and Wallet unified through a common interface |
 | 4 | Runtime Hardware Swap | Dispenser swaps from Spiral to Conveyor live without touching kiosk logic |
-| 5 | Decorator Modules | Network, Refrigeration, Solar modules attached optionally per kiosk |
-| 6 | Composite Inventory | Products, Bundles, and Nested Bundles with cascading discounts |
-| 7 | Command Pattern | Purchase, Refund (undo), and Restock as encapsulated commands |
-| 8 | Persistence | Inventory, transactions, and config saved to JSON after every run |
-| 9 | Pretty CLI | Colour-coded phase boxes, tables, diagnostics cards, transaction log |
+| 5 | Composite Inventory | Products, Bundles, and Nested Bundles with cascading discounts |
+| 6 | Cart System | Multiple items can be added before checkout |
+| 7 | SMTP Email Integration | OTP verification and purchase receipt delivery using Gmail SMTP |
+| 8 | Command Pattern | Purchase, Refund (undo), and Restock as encapsulated commands |
+| 9 | Persistence | Inventory, transactions, and config saved to JSON after every run |
+| 10 | Pretty CLI | Colour-coded phase boxes, tables, diagnostics cards, transaction log |
 
 ---
 
@@ -83,6 +84,10 @@ AuraRetailOS/
 │   ├── card_adapter.h                # Card adapter
 │   └── wallet_adapter.h              # Wallet adapter
 │
+├── email/                            # SMTP Integration
+│   ├── smtp_client.cpp               # SMTP email sending logic
+│   └── email_service.h               # OTP + receipt handling
+│
 ├── decorator/                        # Decorator Pattern
 │   ├── kiosk_decorator.h             # Base decorator
 │   ├── network_decorator.h           # Adds network module to kiosk
@@ -111,7 +116,7 @@ AuraRetailOS/
 | **Adapter** | `payment/upi_adapter.h`, `card_adapter.h`, `wallet_adapter.h` | Wraps different payment systems under one `IPayment` interface |
 | **Proxy** | `inventory/inventory_proxy.h` | PIN-secured, session-aware gatekeeper to `RealInventory` |
 | **Decorator** | `decorator/network_decorator.h`, `refrigeration_decorator.h`, `solar_decorator.h` | Attaches optional hardware modules to kiosks at runtime |
-| **Composite** | `inventory/product.h`, `inventory/bundle.h` | Treats single items and bundles (incl. nested bundles) uniformly |
+| **Composite** | `inventory/product.h`, `inventory/bundle.h` | Treats products and bundles uniformly using recursive pricing |
 | **Command** | `commands/purchase_command.h`, `refund_command.h`, `restock_command.h` | Encapsulates operations as objects — enables undo and logging |
 | **Persistence** | `persistence/persistence_manager.h` | Serialises system state to JSON files after every run |
 
@@ -121,37 +126,36 @@ AuraRetailOS/
 
 Every purchase follows this sequence:
 
-```
-1. Kiosk Selection
-   → User picks Food / Pharmacy / Emergency kiosk
+```text
+1. Customer Registration
+   → User enters Name + Email
 
-2. Item Selection (Composite)
-   → User picks a Product, Bundle, or Nested Bundle
-   → Discounted price calculated recursively
+2. OTP Verification
+   → SMTP sends a 6-digit verification code
 
-3. Inventory Access (Proxy)
-   → InventoryProxy checks PIN / session authorization
-   → Logs access request with timestamp and user
+3. Item Selection (Composite)
+   → User selects Products or Bundles
 
-4. Payment Processing (Adapter)
-   → Selected adapter (UPI / Card / Wallet) processes payment
-   → All adapters called through unified IPayment interface
+4. Cart Building
+   → Multiple items added before checkout
 
-5. Dispensing (Hardware Abstraction)
-   → Active dispenser (Spiral / Conveyor) releases the item
+5. Inventory Access (Proxy)
+   → InventoryProxy validates access and logs request
 
-6. Stock Update
-   → InventoryProxy updates stock in RealInventory
+6. Payment Processing (Adapter)
+   → UPI / Card / Wallet handled via common interface
 
-7. Command Logging
-   → CommandLogger records TXN ID, type, item, amount, status
+7. Dispensing
+   → Hardware abstraction releases items
 
-8. Undo (Optional)
-   → RefundCommand reverses purchase and restores stock
+8. Receipt Delivery
+   → Purchase summary printed and emailed
+
+9. Persistence
+   → Transactions saved to JSON
 ```
 
 ---
-
 ## ⭐ Unique Selling Points
 
 **1. Runtime Hardware Swap**
@@ -163,6 +167,8 @@ Every purchase follows this sequence:
 **3. Nested Composite Bundles**
 > `Emergency Kit` contains `Meal Kit` (another bundle) + individual products. Price calculated recursively with a cascading 15% discount on top of the inner bundle's 10%.
 
+**4. Real SMTP Integration**
+> OTP verification and receipt delivery are handled using Gmail SMTP, bringing real-world authentication into the simulation.
 ---
 
 ## 🔒 Constraint Scenarios Demonstrated
@@ -175,6 +181,7 @@ Every purchase follows this sequence:
 | Live Hardware Swap | `swapDispenser()` called at runtime — next dispense uses new hardware immediately |
 | Command Undo | `RefundCommand::execute()` restores stock and logs a REFUND transaction |
 | Nested Bundle Pricing | `Bundle::getPrice()` recurses into child bundles before applying its own discount |
+| OTP Verification | User must verify via email before completing purchase |
 
 ---
 
@@ -187,6 +194,20 @@ Every purchase follows this sequence:
 | Add a new dispenser | Implement `IDispenser` and pass it to any kiosk via `swapDispenser()` |
 | Add a new decorator module | Extend `KioskDecorator` and wrap any kiosk instance |
 | Add a new command | Implement `ICommand` with `execute()` and `undo()` methods |
+| Add email notifications | Extend SMTP service inside `email/` module |
+
+---
+
+## 📧 SMTP Integration
+
+Aura Retail OS includes real email verification and receipt delivery.
+
+Features include:
+
+- 6-digit OTP verification
+- Gmail SMTP integration
+- Purchase receipt email
+- Session-based verification
 
 ---
 
@@ -215,224 +236,134 @@ Every purchase follows this sequence:
 <details>
 <summary>Click to expand full output</summary>
 
-```
+```text
 +==================================================================+
-|          AURA RETAIL OS  --  FINAL SIMULATION                   |
+|       AURA RETAIL OS  --  INTERACTIVE TERMINAL SYSTEM            |
 +==================================================================+
 
+[1] Customer Session
+[2] Admin Terminal
+[0] Shutdown
+>> Select option: 1
 
-+====================================================================+
-| PHASE 1: Central Registry  ──  Singleton Pattern                   |
-+====================================================================+
-[CentralRegistry] Initializing system...
-[CentralRegistry] Singleton instance created.
-  [OK] Singleton verified -- same instance returned.
++==================================================================+
+| STEP 1 of 3  >>  CUSTOMER REGISTRATION                           |
++==================================================================+
+[i] Enter Name: Varu
+[i] Enter Email: varu@gmail.com
+[i] Validating email format... [OK]
+[i] Sending 6-digit OTP to varu@gmail.com...
+[SMTP Success] OTP sent successfully via Gmail.
 
-+====================================================================+
-| PHASE 2: Hardware Abstraction  ──  Dispenser Setup                 |
-+====================================================================+
-  [i]  Active dispenser: Spiral Dispenser
+[i] Please enter the OTP sent to your email: 582931
+[OK] OTP Verified. Access granted to AURA Kiosks.
 
-+====================================================================+
-| PHASE 3: Kiosk Creation  ──  Factory Pattern                       |
-+====================================================================+
-[KioskFactory] Creating kiosk of type: food
-[FoodKiosk] Initialized at Metro Station - Gate 2
-[KioskFactory] Creating kiosk of type: pharmacy
-[PharmacyKiosk] Initialized at City Hospital - Wing B
-[KioskFactory] Creating kiosk of type: emergency
-[EmergencyKiosk] Initialized at Disaster Zone - Sector 4
++==================================================================+
+| STEP 2 of 3  >>  KIOSK SELECTION                                 |
++==================================================================+
+[1] Food Kiosk      (Metro Station - Gate 2)
+[2] Pharmacy Kiosk  (City Hospital - Wing B)
+[3] Emergency Kiosk (Disaster Zone - Sector 4)
+>> Select kiosk: 1
 
-┌──────────────────┬────────────────────────────┬────────────────────┐
-│ Kiosk            │ Location                   │ Hardware           │
-├──────────────────┼────────────────────────────┼────────────────────┤
-│ FoodKiosk        │ Metro Station - Gate 2     │ Spiral Dispenser   │
-│ PharmacyKiosk    │ City Hospital - Wing B     │ Spiral Dispenser   │
-│ EmergencyKiosk   │ Disaster Zone - Sector 4   │ Conveyor Dispenser │
-└──────────────────┴────────────────────────────┴────────────────────┘
++==================================================================+
+| STEP 3 of 3  >>  CUSTOMER TERMINAL  //  Metro Station - Gate 2   |
++==================================================================+
+[1] Add Item to Cart
+[2] View Cart & Checkout
+[3] View Current Stock
+[0] Exit Terminal
+>> Select option: 1
 
-+====================================================================+
-| PHASE 4: Optional Modules  ──  Decorator Pattern                   |
-+====================================================================+
-  [OK] NetworkDecorator       attached -> Signal: 94%
-  [OK] RefrigerationDecorator attached -> Temp: 4C
-  [OK] SolarDecorator         attached -> Battery: 87%
-
-+====================================================================+
-| PHASE 5: Inventory Setup  ──  Composite Pattern                    |
-+====================================================================+
-
-  > Single Products
-  -------------------------------------------------------
+INVENTORY // food
 ┌────┬────────────────────────┬───────────┬─────────┬───────┐
 │ #  │ Item                   │ Type      │ Price   │ Stock │
 ├────┼────────────────────────┼───────────┼─────────┼───────┤
-│ 1  │ Water Bottle           │ Food      │ Rs.20   │ 15    │
-│ 2  │ Energy Bar             │ Food      │ Rs.30   │ 10    │
-│ 3  │ Paracetamol            │ Pharmacy  │ Rs.50   │ 8     │
-│ 4  │ Bandage                │ Pharmacy  │ Rs.15   │ 20    │
+│ 1  │ Water Bottle           │ Food      │ Rs.20   │ 11    │
+│ 6  │ Meal Kit (Bundle)      │ Food      │ Rs.45   │ 6     │
 └────┴────────────────────────┴───────────┴─────────┴───────┘
+>> Select item number: 6
 
-  > Bundles
-  -------------------------------------------------------
-┌────┬────────────────────────┬───────────┬─────────┬───────┐
-│ #  │ Item                   │ Type      │ Price   │ Stock │
-├────┼────────────────────────┼───────────┼─────────┼───────┤
-│ 1  │ Meal Kit (10% off)     │ Food      │ Rs.45   │  -    │
-│ 2  │ Emrg. Kit (15% off)    │ Emergency │ Rs.93.5 │  -    │
-└────┴────────────────────────┴───────────┴─────────┴───────┘
-  [OK] All items registered in Central Catalog.
+BUNDLE DETAILS: Meal Kit (10% off)
+> Meal Kit (10% off) | Subtotal: Rs.45
+  |- Water Bottle    | Food       | Rs.20
+  |- Energy Bar      | Food       | Rs.30
+-------------------------------------------------------
+[i] Enter quantity: 2
+[OK] Meal Kit (Bundle) x2 added to cart.
 
-+====================================================================+
-| PHASE 6: Payment Providers  ──  Adapter Pattern                    |
-+====================================================================+
+>> Select option: 2
 
-┌────┬──────────┬──────────────────────────┐
-│ #  │ Method   │ Description              │
-├────┼──────────┼──────────────────────────┤
-│ 1  │ UPI      │ Instant bank transfer    │
-│ 2  │ Card     │ Debit / Credit card      │
-│ 3  │ Wallet   │ Digital wallet balance   │
-└────┴──────────┴──────────────────────────┘
-Select payment method: 2
-  [OK] Card adapter selected. All use IPayment interface.
+YOUR SHOPPING CART
+-----------------------------------
+  - Meal Kit (Bundle)    x2  Rs.90
+  - Water Bottle         x1  Rs.20
+-----------------------------------
+[i] TOTAL PAYABLE: Rs.110
+>> Proceed to payment? [1=Yes / 0=Cancel]: 1
 
-+====================================================================+
-| PHASE 7: Purchase Simulation  ──  Proxy + Command                  |
-+====================================================================+
-┌────┬────────────────┬──────────────────────────────┐
-│ #  │ Kiosk          │ Location                     │
-├────┼────────────────┼──────────────────────────────┤
-│ 1  │ FoodKiosk      │ Metro Station - Gate 2       │
-│ 2  │ PharmacyKiosk  │ City Hospital - Wing B       │
-│ 3  │ EmergencyKiosk │ Disaster Zone - Sector 4     │
-└────┴────────────────┴──────────────────────────────┘
-Select kiosk: 3
-Select item number: 1
+PAYMENT SETUP   >>   Adapter Pattern
+[1] UPI gateway
+[2] Card terminal
+[3] Digital Wallet
+>> Select option: 1
 
-[PurchaseCommand] Executing purchase...
-[InventoryProxy] Access request for: Emergency Kit
-[InventoryProxy] Authorization required for: SimulationUser
-[InventoryProxy] Enter access PIN: 1234
-[InventoryProxy] PIN verified. Access GRANTED for this session.
-[InventoryProxy] Access logged: Emergency Kit by SimulationUser
-[Card Payment] Enter Card Number (any digits): 9876543210123456
-[Card Payment] Enter CVV: 321
-[CardAdapter] Card **** **** **** 3456 accepted.
-[Card System] Charging Rs.93.5 to card ending in 3456
-Paid Rs.93.5 via Card.
-[SpiralDispenser] Dispensing: Emergency Kit
-[InventoryProxy] Stock updated: Emergency Kit => 4 remaining
-[PurchaseCommand] Purchase of Emergency Kit complete.
-  [OK] Purchase of Emergency Kit complete.
+[i] Enter UPI ID: varu@okaxis
+[OK] UPI ID verified. Payment locked for session.
 
-+====================================================================+
-| PHASE 8: Refund  ──  Command Pattern Undo                          |
-+====================================================================+
-Would you like to refund? (1=Yes / 0=No): 1
+╔══════════════════════════════════════════════╗
+║         AURA RETAIL OS  --  RECEIPT          ║
+╠══════════════════════════════════════════════╣
+║  Location:            Metro Station - Gate 2 ║
+║  Payment:                     UPI (varu@...) ║
+║  ------------------------------------------  ║
+║  Meal Kit (Bundle) (x2)               Rs.90  ║
+║  Water Bottle (x1)                    Rs.20  ║
+║  ------------------------------------------  ║
+║  TOTAL PAID:                         Rs.110  ║
+║  Status:                   PAID / SUCCESSFUL ║
+╚══════════════════════════════════════════════╝
 
-[RefundCommand] Refund of Rs.93.5 processed. Stock restored.
-  [OK] Refund of Rs.93 processed. Stock restored.
-
-+====================================================================+
-| PHASE 9: Restock  ──  Command Pattern                              |
-+====================================================================+
-Restock item name (or 0 to skip): 0
-  [i]  Restock skipped.
-
-+====================================================================+
-| PHASE 10: Runtime Hardware Swap  ──  FoodKiosk                     |
-+====================================================================+
-  [i]  FoodKiosk current: Spiral Dispenser
-  -->  Swapping to Conveyor Dispenser...
-[HardwareManager] Swapping dispenser: Spiral Dispenser -> Conveyor Dispenser
-  [OK] Swap complete -> Active: Conveyor Dispenser
-
-Select item number: 1
-
-[InventoryProxy] Session already authorized. Access GRANTED.
-[ConveyorDispenser] Dispensing: Water Bottle
-[InventoryProxy] Stock updated: Water Bottle => 14 remaining
-  [OK] Test purchase of Water Bottle via Conveyor successful.
-
-+====================================================================+
-| PHASE 11: Diagnostics  ──  All Kiosks                              |
-+====================================================================+
-┌──────────────────────────────────────────────────────┐
-│  FoodKiosk                                     ONLINE│
-├──────────────────────────────────────────────────────┤
-│ Location : Metro Station - Gate 2                    │
-│ Hardware : Conveyor Dispenser                        │
-│ Module   : Network   : Connected | Signal 94%        │
-│ Module   : Refrigeration : Active | Temp 4C          │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  PharmacyKiosk                                 ONLINE│
-├──────────────────────────────────────────────────────┤
-│ Location : City Hospital - Wing B                    │
-│ Hardware : Spiral Dispenser                          │
-└──────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────┐
-│  EmergencyKiosk                                ONLINE│
-├──────────────────────────────────────────────────────┤
-│ Location : Disaster Zone - Sector 4                  │
-│ Hardware : Conveyor Dispenser                        │
-│ Module   : Solar Power : Active | Battery 87%        │
-└──────────────────────────────────────────────────────┘
-
-+====================================================================+
-| TRANSACTION LOG                                                    |
-+====================================================================+
-┌─────────┬──────────┬─────────────────┬─────────┬─────────┬──────────┐
-│ TXN     │ Type     │ Item            │ Amt     │ Method  │ Status   │
-├─────────┼──────────┼─────────────────┼─────────┼─────────┼──────────┤
-│ #TXN001 │ PURCHASE │ Emergency Kit   │ Rs.93   │ Card    │ Success  │
-│ #TXN002 │ REFUND   │ Emergency Kit   │ Rs.93   │ Card    │ Refund   │
-│ #TXN003 │ PURCHASE │ Water Bottle    │ Rs.20   │ Card    │ Success  │
-└─────────┴──────────┴─────────────────┴─────────┴─────────┴──────────┘
-
-+====================================================================+
-| PERSISTENCE  ──  Saving System State                               |
-+====================================================================+
-  [OK] inventory.json    saved.
-  [OK] transactions.json saved.
-  [OK] config.json       saved.
+[i] Sending consolidated receipt to varu@gmail.com...
+[SMTP Success] Receipt delivered successfully.
+[OK] Checkout complete! All items dispensed.
 
 +==================================================================+
-|                    SIMULATION COMPLETE                          |
+| ADMIN TERMINAL  //  System Management                            |
 +==================================================================+
-┌────┬─────────────┬──────────────────────────────────────────┐
-│    │ Pattern     │ Verified                                 │
-├────┼─────────────┼──────────────────────────────────────────┤
-│ OK │ Singleton   │ CentralRegistry - single instance enforced│
-│ OK │ Factory     │ 3 kiosk types created via KioskFactory   │
-│ OK │ Adapter     │ UPI / Card / Wallet unified via IPayment │
-│ OK │ Proxy       │ PIN-secured inventory + session auth     │
-│ OK │ Decorator   │ Refrigeration, Network, Solar modules    │
-│ OK │ Composite   │ Products -> Bundles -> Nested Bundles    │
-│ OK │ Command     │ Purchase, Refund, Restock + undo + log   │
-│ OK │ Persistence │ Saved to inventory/transactions/config   │
-└────┴─────────────┴──────────────────────────────────────────┘
+[i] Admin Username: aura_admin
+[i] Admin Password: •••••••••••
+[OK] Admin access granted.
+
+[1] Restock All Kiosks
+[2] View Global Audit Log
+[3] System Diagnostics
+>> Select option: 1
+
+[Admin] Restocking Metro Station - Gate 2... [OK]
+[Admin] Restocking City Hospital - Wing B... [OK]
+[Admin] Restocking Disaster Zone - Sector 4... [OK]
+
+[OK] All system inventories restored to maximum capacity.
+
+[i] Saving system state to persistence/data/... [OK]
+[i] Shutdown complete.
 ```
-
 </details>
-
 ---
 
 ### 🔍 Pattern Highlights
 
 | # | Pattern | Key Moment in Output |
 |---|---------|----------------------|
-| 1 | **Singleton** | `Singleton verified -- same instance returned` |
-| 2 | **Factory** | 3 kiosk types created in table with correct hardware assigned |
-| 3 | **Decorator** | Network + Refrigeration on Food, Solar on Emergency — shown in diagnostics |
-| 4 | **Composite** | Emergency Kit = nested bundle (Meal Kit + Paracetamol + Bandage) |
-| 5 | **Adapter** | Card/UPI/Wallet all called through same `IPayment::pay()` |
-| 6 | **Proxy** | PIN asked once → `Session already authorized` on second access |
-| 7 | **Command** | Purchase executed → Refund undoes it → stock restored |
-| 8 | **Persistence** | 3 JSON files saved at end of every run |
+| 1 | **Singleton** | Central registry initialized once for the entire system |
+| 2 | **Factory** | Kiosk selection dynamically creates Food / Pharmacy / Emergency kiosks |
+| 3 | **Composite** | Bundles display nested products recursively |
+| 4 | **Adapter** | UPI/Card/Wallet handled through one payment interface |
+| 5 | **Proxy** | OTP + inventory validation before transaction |
+| 6 | **Command** | Checkout, refund, and admin actions executed as commands |
+| 7 | **Decorator** | Optional kiosk modules displayed during diagnostics |
+| 8 | **Persistence** | System state saved during shutdown |
 
 ---
 
@@ -446,6 +377,9 @@ Select item number: 1
 
 **3. Nested Composite Bundles**
 > `Emergency Kit` contains `Meal Kit` (another bundle) + individual products. Price calculated recursively with a cascading 15% discount applied on top of the inner 10%.
+
+**4. Real SMTP Integration**
+> OTP verification and receipt delivery are handled using Gmail SMTP, bringing real-world authentication into the simulation.
 
 ---
 
@@ -473,4 +407,4 @@ Select item number: 1
 
 ## 📄 License
 
-This project was built as an academic OOP demonstration.
+This project was built as an academic OOP demonstration focused on scalable architecture, real-world integrations, and advanced design-pattern implementation.
