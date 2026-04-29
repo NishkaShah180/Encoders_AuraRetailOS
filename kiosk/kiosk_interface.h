@@ -24,6 +24,7 @@ public:
                   << dispenser->getDispenserType() << "\n";
     }
 
+    std::shared_ptr<IDispenser> getDispenser() const { return dispenser; }
     virtual void purchaseItem(const std::string& itemName, double amount, IPayment& payment) = 0;
     virtual void runDiagnostics() = 0;
     virtual ~IKiosk() = default;

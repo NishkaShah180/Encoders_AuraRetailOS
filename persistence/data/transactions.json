@@ -1,32 +1,39 @@
 {
   "transactions": [
     {
+      "type": "PURCHASE",
+      "item": "Water Bottle",
+      "amount": 20,
+      "payment": "UPI (varu@upi)",
+      "status": "Success"
+    },
+    {
+      "type": "PURCHASE",
+      "item": "Sandwich",
+      "amount": 100,
+      "payment": "UPI (varu@upi)",
+      "status": "Success"
+    },
+    {
+      "type": "REFUND",
+      "item": "Sandwich",
+      "amount": 100,
+      "payment": "UPI (varu@upi)",
+      "status": "Refunded"
+    },
+    {
       "type": "RESTOCK",
+      "item": "Energy Bar",
+      "amount": 0,
+      "payment": "-",
+      "status": "Done"
+    },
+    {
+      "type": "PURCHASE",
       "item": "Power Bank",
-      "amount": 0,
-      "payment": "-",
-      "status": "Done"
-    },
-    {
-      "type": "RESTOCK",
-      "item": "Emergency Kit",
-      "amount": 0,
-      "payment": "-",
-      "status": "Done"
-    },
-    {
-      "type": "RESTOCK",
-      "item": "Flashlight",
-      "amount": 0,
-      "payment": "-",
-      "status": "Done"
-    },
-    {
-      "type": "RESTOCK",
-      "item": "First Aid Kit",
-      "amount": 0,
-      "payment": "-",
-      "status": "Done"
+      "amount": 500,
+      "payment": "Wallet (Paytm)",
+      "status": "Success"
     }
   ]
 }

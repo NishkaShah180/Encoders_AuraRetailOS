@@ -28,6 +28,7 @@ public:
     }
 
     int getQuantity() override { return 1; }
+    std::string getItemType() const override { return "Bundle"; }
 
     void display() override {
         std::cout << "    [Bundle] " << name

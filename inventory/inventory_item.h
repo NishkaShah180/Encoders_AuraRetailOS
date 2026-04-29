@@ -7,5 +7,6 @@ public:
     virtual double getPrice() = 0;
     virtual int getQuantity() = 0;
     virtual void display() = 0;
+    virtual std::string getItemType() const = 0;
     virtual ~IInventoryItem() = default;
 };

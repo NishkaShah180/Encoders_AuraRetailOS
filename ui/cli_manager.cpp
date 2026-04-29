@@ -75,7 +75,9 @@ static void showStock(const std::string& kt, InventoryProxy& inv) {
     std::vector<std::string> names, prices, qtys, types;
     for (auto& e : reg->getCatalog()) {
         if (e.kioskType != kt) continue;
-        names.push_back(e.item->getName());
+        std::string displayName = e.item->getName();
+        if (e.item->getItemType() == "Bundle") displayName += " (Bundle)";
+        names.push_back(displayName);
         prices.push_back("Rs." + std::to_string((int)e.item->getPrice()));
         int q = inv.getStock(e.item->getName());
         qtys.push_back(q < 0 ? "N/A" : std::to_string(q));
@@ -138,8 +140,7 @@ static std::pair<std::shared_ptr<IPayment>, std::string> doPayment(double /*amou
 }
 
 // ─── Print receipt ─────────────────────────────────────────────────────
-static void printReceipt(const std::string& item, int qty, double total,
-                         const std::string& pay, const std::string& location) {
+static void printReceipt(const PurchaseInfo& p) {
     std::cout << "\n" << Color::BCYAN << Color::BOLD;
     std::cout << "  ╔══════════════════════════════════════════════╗\n";
     std::cout << "  ║         AURA RETAIL OS  --  RECEIPT          ║\n";
@@ -150,12 +151,18 @@ static void printReceipt(const std::string& item, int qty, double total,
                   << (pad > 0 ? std::string(pad,' ') : "") << v
                   << AuraCLI::Color::BCYAN << AuraCLI::Color::BOLD << "  ║\n";
     };
-    row("Location:", location);
-    row("Item:", item);
-    row("Qty:", std::to_string(qty));
-    row("Total:", "Rs." + std::to_string((int)total));
-    row("Payment:", pay);
-    row("Status:", "PAID");
+    row("Location:", p.location);
+    row("Payment:", p.paymentMethod);
+    std::cout << "  ║  " << AuraCLI::Color::RESET << "------------------------------------------" << AuraCLI::Color::BCYAN << AuraCLI::Color::BOLD << "  ║\n";
+    
+    for (const auto& item : p.items) {
+        std::string label = item.itemName + " (x" + std::to_string(item.quantity) + ")";
+        row(label, "Rs." + std::to_string((int)item.subtotal));
+    }
+
+    std::cout << "  ║  " << AuraCLI::Color::RESET << "------------------------------------------" << AuraCLI::Color::BCYAN << AuraCLI::Color::BOLD << "  ║\n";
+    row("TOTAL PAID:", "Rs." + std::to_string((int)p.totalAmount));
+    row("Status:", "PAID / SUCCESSFUL");
     std::cout << Color::BCYAN << Color::BOLD;
     std::cout << "  ╚══════════════════════════════════════════════╝\n";
     std::cout << Color::RESET << "\n";
@@ -181,9 +188,11 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
     std::shared_ptr<IDispenser> disp;
     std::vector<std::string> mods;
 
-    if      (kc==1){ kiosk=sim.decoratedFood;      kt="food";      location="Metro Station - Gate 2";   disp=sim.spiral;   mods={"Network: 94%","Refg: 4C"}; }
-    else if (kc==2){ kiosk=sim.pharmacyKiosk;       kt="pharmacy";  location="City Hospital - Wing B";   disp=sim.spiral;   }
-    else           { kiosk=sim.decoratedEmergency;  kt="emergency"; location="Disaster Zone - Sector 4"; disp=sim.conveyor; mods={"Solar: 87%"}; }
+    if      (kc==1){ kiosk=sim.decoratedFood;      kt="food";      location="Metro Station - Gate 2";   mods={"Network: 94%","Refg: 4C"}; }
+    else if (kc==2){ kiosk=sim.pharmacyKiosk;       kt="pharmacy";  location="City Hospital - Wing B";   }
+    else           { kiosk=sim.decoratedEmergency;  kt="emergency"; location="Disaster Zone - Sector 4"; mods={"Solar: 87%"}; }
+
+    disp = kiosk->getDispenser();
 
     InventoryProxy userInv(username, sim.sharedInventory);  // shares global stock
 
@@ -200,6 +209,13 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
     std::string sessionPayName;
     bool paymentInitialized = false;
 
+    // Cart for multiple items
+    struct CartItem {
+        std::shared_ptr<IInventoryItem> item;
+        int qty;
+    };
+    std::vector<CartItem> sessionCart;
+
     // Last-purchase tracking (for refund)
     std::string lastItem; double lastAmt = 0; bool lastOk = false; std::string lastPay;
 
@@ -208,12 +224,13 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
     while (running) {
         hdr("STEP 3 of 3  >>  CUSTOMER TERMINAL  //  " + location, Color::BGREEN);
         hr();
-        menuLine("1", "Browse & Purchase Item",  "Command + Proxy + Adapter");
-        menuLine("2", "View Current Stock",       "Composite Pattern");
-        menuLine("3", "Refund Last Purchase",     "Command Undo");
+        menuLine("1", "Add Item to Cart",         "Browse & Select Items");
+        menuLine("2", "View Cart & Checkout",     "Process Multi-item Purchase");
+        menuLine("3", "View Current Stock",       "Composite Pattern View");
+        menuLine("4", "Refund Last Purchase",     "Command Undo");
         menuLine("0", "Exit Terminal", "", true);
         hr();
-        int ch = readInt("Select option: ", 0, 3);
+        int ch = readInt("Select option: ", 0, 4);
 
         if (ch == 1) {
             // ── Browse catalogue ──────────────────────────────────────
@@ -229,6 +246,13 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
             int ic = readInt("Select item number: ", 1, (int)items.size());
             auto selected = items[ic-1];
 
+            // ── COMPOSITE PATTERN: Show bundle details if it is a bundle ──
+            if (selected->getItemType() == "Bundle") {
+                hdr("BUNDLE DETAILS: " + selected->getName(), Color::BCYAN);
+                selected->display(); // Shows nested products/bundles
+                hr();
+            }
+
             // Quantity
             int available = userInv.getStock(selected->getName());
             if (available <= 0) {
@@ -238,65 +262,89 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
             int maxQ = available > 5 ? 5 : available;
             info("Available stock: " + std::to_string(available) + "  |  Max per transaction: " + std::to_string(maxQ));
             int qty = readInt("Enter quantity (1-" + std::to_string(maxQ) + "): ", 1, maxQ);
-            double total = selected->getPrice() * qty;
-            info("Subtotal: Rs." + std::to_string((int)total));
+            
+            sessionCart.push_back({selected, qty});
+            ok(selected->getName() + " x" + std::to_string(qty) + " added to cart.");
+            pause();
 
-            // ── Lazy payment init: ask ONLY on first purchase of session ─
+        } else if (ch == 2) {
+            // ── VIEW CART & CHECKOUT ──────────────────────────────────
+            if (sessionCart.empty()) {
+                warn("Your cart is empty! Add some items first.");
+                pause(); continue;
+            }
+
+            hdr("YOUR SHOPPING CART", Color::BGREEN);
+            double cartTotal = 0;
+            for (auto& ci : sessionCart) {
+                double sub = ci.item->getPrice() * ci.qty;
+                std::cout << "  - " << std::left << std::setw(20) << ci.item->getName() 
+                          << " x" << ci.qty << "  Rs." << (int)sub << "\n";
+                cartTotal += sub;
+            }
+            hr();
+            info("TOTAL PAYABLE: Rs." + std::to_string((int)cartTotal));
+            
+            int confirm = readInt("Proceed to payment? [1=Yes / 0=Cancel]: ", 0, 1);
+            if (confirm == 0) continue;
+
+            // ── Lazy payment init: ask ONLY once per checkout ─────────
             if (!paymentInitialized) {
                 hdr("PAYMENT SETUP   >>   Adapter Pattern", Color::BGREEN);
-                info("Total: Rs." + std::to_string((int)total));
-                info("Select payment — credentials saved for this entire session.");
-                auto payResult    = doPayment(total);
+                auto payResult    = doPayment(cartTotal);
                 sessionPayment    = payResult.first;
                 sessionPayName    = payResult.second;
                 paymentInitialized = true;
                 ok("Payment locked for session: " + sessionPayName);
-            } else {
-                info("Reusing session payment: " + sessionPayName + "  [Adapter Pattern]");
             }
+            
             auto payment = sessionPayment;
             auto pname   = sessionPayName;
 
-            // Execute ONE purchase command with the TOTAL amount — payment asked only once
-            PurchaseCommand cmd(selected->getName(), total, *payment, userInv, *disp);
-            cmd.execute();
-            bool success = cmd.isExecuted();
+            // Execute purchase for EACH item in cart
+            bool anySuccess = false;
+            PurchaseInfo finalReceipt;
+            finalReceipt.totalAmount = 0;
+            finalReceipt.paymentMethod = pname;
+            finalReceipt.location = location;
 
-            // If qty > 1, deduct the remaining units from stock directly (payment already processed)
-            if (success && qty > 1) {
-                userInv.updateStock(selected->getName(), -(qty - 1));
+            for (auto& ci : sessionCart) {
+                double itemTotal = ci.item->getPrice() * ci.qty;
+                PurchaseCommand cmd(ci.item->getName(), itemTotal, *payment, userInv, *disp);
+                cmd.execute();
+                
+                if (cmd.isExecuted()) {
+                    anySuccess = true;
+                    if (ci.qty > 1) userInv.updateStock(ci.item->getName(), -(ci.qty - 1));
+                    
+                    lastItem = ci.item->getName();
+                    lastAmt  = itemTotal;
+                    lastOk   = true;
+                    lastPay  = pname;
+                    
+                    logger.record("PURCHASE", lastItem, itemTotal, pname, "Success");
+                    finalReceipt.items.push_back({ci.item->getName(), ci.qty, itemTotal});
+                    finalReceipt.totalAmount += itemTotal;
+                } else {
+                    fail("Failed to dispense: " + ci.item->getName());
+                }
             }
 
-            if (success) {
-                lastItem = selected->getName();
-                lastAmt  = total;
-                lastOk   = true;
-                lastPay  = pname;
-                logger.record("PURCHASE", lastItem, total, pname, "Success");
-                std::cout << "\n  " << tag(" PAYMENT SUCCESS ", Color::BGREEN)
-                          << "  " << lastItem << " x" << qty << "  Rs." << (int)total << "\n";
-                printReceipt(lastItem, qty, total, pname, location);
-                
-                // Send Receipt Email
-                PurchaseInfo pInfo = {lastItem, qty, total, pname, location};
-                sessionPurchases.push_back(pInfo);
-                info("Sending receipt to " + email + "...");
-                emailSvc.sendReceiptAsync(email, username, pInfo);
-
-                info("Stock updated. New stock: " + std::to_string(userInv.getStock(lastItem)));
-            } else {
-                lastOk = false;
-                logger.record("PURCHASE", selected->getName(), total, pname, "Failed");
-                fail("Transaction failed. Stock not deducted.");
+            if (anySuccess) {
+                printReceipt(finalReceipt);
+                info("Sending consolidated receipt to " + email + "...");
+                emailSvc.sendReceiptAsync(email, username, finalReceipt);
+                ok("Checkout complete! All items dispensed.");
+                sessionCart.clear(); // Empty cart after checkout
             }
             pause();
 
-        } else if (ch == 2) {
+        } else if (ch == 3) {
             hdr("CURRENT STOCK  //  " + kt, Color::BGREEN);
             showStock(kt, userInv);
             pause();
 
-        } else if (ch == 3) {
+        } else if (ch == 4) {
             hdr("REFUND  //  Command Pattern Undo", Color::YELLOW);
             if (!lastOk) { warn("No successful purchase to refund."); pause(); continue; }
             info("Last purchase: " + lastItem + "  Rs." + std::to_string((int)lastAmt));
@@ -308,8 +356,6 @@ static void runCustomer(SimulationRunner& sim, const std::string& username,
                 lastOk = false;
                 std::cout << "  " << tag(" REFUND PROCESSED ", Color::YELLOW)
                           << "  Rs." << (int)lastAmt << " will be returned.\n";
-            } else {
-                info("Refund cancelled.");
             }
             pause();
 

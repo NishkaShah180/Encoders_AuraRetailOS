@@ -14,6 +14,7 @@ public:
     std::string getName() override { return name; }
     double getPrice() override { return price; }
     int getQuantity() override { return quantity; }
+    std::string getItemType() const override { return "Product"; }
 
     void display() override {
         std::cout << "    [Product] " << name

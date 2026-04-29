@@ -77,20 +77,27 @@ bool EmailService::sendReceipt(const std::string& to, const std::string& name, c
     char dateStr[20];
     std::strftime(dateStr, sizeof(dateStr), "%Y-%m-%d %H:%M:%S", now);
 
-    std::string subject = "Aura Retail OS Receipt";
+    std::string subject = "Aura Retail OS - Transaction Receipt";
     std::stringstream body;
     body << "Thank you for using Aura Retail OS.\n\n"
-         << "Receipt:\n"
+         << "CUSTOMER RECEIPT\n"
+         << "===================================\n"
+         << "Customer:  " << name << "\n"
+         << "Location:  " << purchase.location << "\n"
+         << "Date:      " << dateStr << "\n"
          << "-----------------------------------\n"
-         << "Customer Name:  " << name << "\n"
-         << "Location:       " << purchase.location << "\n"
-         << "Product Name:   " << purchase.itemName << "\n"
-         << "Quantity:       " << purchase.quantity << "\n"
-         << "Total Amount:   Rs." << (int)purchase.amount << "\n"
+         << "Items Purchased:\n";
+    
+    for (const auto& item : purchase.items) {
+        body << "- " << item.itemName << " (x" << item.quantity << ") : Rs." << (int)item.subtotal << "\n";
+    }
+
+    body << "-----------------------------------\n"
+         << "TOTAL PAID: Rs." << (int)purchase.totalAmount << "\n"
          << "Payment Method: " << purchase.paymentMethod << "\n"
-         << "Date & Time:     " << dateStr << "\n"
-         << "Status:          Successful\n"
-         << "-----------------------------------\n";
+         << "Status: Successful\n"
+         << "===================================\n"
+         << "We hope to see you again soon!\n";
     
     return smtpClient->sendEmail(to, subject, body.str());
 }

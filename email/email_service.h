@@ -4,10 +4,15 @@
 #include <memory>
 #include "smtp_client.h"
 
-struct PurchaseInfo {
+struct CartItemInfo {
     std::string itemName;
     int quantity;
-    double amount;
+    double subtotal;
+};
+
+struct PurchaseInfo {
+    std::vector<CartItemInfo> items;
+    double totalAmount;
     std::string paymentMethod;
     std::string location;
 };
@@ -21,7 +26,7 @@ public:
     bool sendOTP(const std::string& to, const std::string& name, const std::string& otp);
     bool sendReceipt(const std::string& to, const std::string& name, const PurchaseInfo& purchase);
 
-    // Async sending wrapper (detaches thread)
+    // Async sending wrapper
     void sendOTPAsync(const std::string& to, const std::string& name, const std::string& otp);
     void sendReceiptAsync(const std::string& to, const std::string& name, const PurchaseInfo& purchase);
 
